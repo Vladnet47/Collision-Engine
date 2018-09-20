@@ -1,40 +1,47 @@
 //-------------------------------------SYSTEM------------------------------------//
 
 var events = {
+    // list of possible events
     leftArrowDown: false,
     rightArrowDown: false,
-    spacePressed: false
-}
-// checks all necesary external inputs, such as keys and mouse
-function checkEvents() {
-    $(document).keydown(function(event) { logEvents(event, true); })
-    $(document).keyup(function(event) { logEvents(event, false); })
-}
+    spaceDown: false,
 
-// updates the current states (true or false) of the events in the game object section
-function logEvents(event, state) {
-    let keys = {
-        32: function() { events.spacePressed = state },
-        37: function() { events.leftArrowDown = state },
-        39: function() { events.rightArrowDown = state } 
+    // checks external inputs from keyboard and mouse
+    checkEvents: function() {
+        $(document).keydown(function(event) { events.logEvents(event, true); })
+        $(document).keyup(function(event) { events.logEvents(event, false); })
+    },
+
+    // updates the current states (true or false) of the possible events
+    logEvents: function(event, state) {
+        let keys = {
+            32: function() { events.spaceDown = state },
+            37: function() { events.leftArrowDown = state },
+            39: function() { events.rightArrowDown = state } 
+        }
+    
+        // Each key on the keyboard has a number code which is stored ih 'event.which'.
+        // 'key' is set equal to the function at the 'event.which' index of 'keys'.
+        // If 'event.which' index does not exist in 'keys', then the if statement below returns
+        // false, since 'key' becomes an undefined function. 
+        // Otherwise, if 'event.which' does exist, the if statement returns true and the function stored in 'key' is called.
+        let key = keys[event.which];
+        if(key)
+            key();
     }
+};
 
-    key = keys[event.which]
+var systemTime = {
+    lastUpdate: Date.now(),
+
+    // calculates the time between frames, in milliseconds
+    getDeltaTime: function() {
+        let currentUpdate = Date.now();
+        let deltaTime = currentUpdate - this.lastUpdate;
+        this.lastUpdate = currentUpdate;
     
-    if(key)
-        key();
-}
-
-function systemTime() {
-    this.lastUpdate = Date.now();
-}
-
-systemTime.prototype.getDeltaTime = function() {
-    let currentUpdate = Date.now();
-    let deltaTime = currentUpdate - this.lastUpdate;
-    this.lastUpdate = currentUpdate;
-    
-    return deltaTime;
+        return deltaTime;
+    }
 }
 
 
@@ -143,7 +150,7 @@ function player(x, y, height, width, color) {
 
 player.prototype = Object.create(gameObject.prototype);
 
-//player.prototype.constructor = player;
+player.prototype.constructor = player;
 
 
 player.prototype.act = function() {
@@ -159,7 +166,7 @@ player.prototype.act = function() {
     }
         
     //Jumping
-    if(events.spacePressed && this.effects.ground) {
+    if(events.spaceDown && this.effects.ground) {
         this.effects.ground = false;
         this.addVelocity(3, 90);
     }
@@ -249,17 +256,16 @@ $(document).ready(function() {
     function update() {
         context.clearRect(0, 0, canvas.width, canvas.height);
         
-        checkEvents();
+        events.checkEvents();
         
         player1.act();
         
         player1.collide(canvas.height);
         
         //debug.innerHTML = ("Velocity: " + player1.velocity.print());
-        //debug.innerHTML = ("Delta Time: " + systemTime.prototype.getDeltaTime());
-        debug.innerHTML = ("Constructor:  " + player.prototype.constructor);
-        
-        ///console.log(systemTime.getDeltaTime());
+
+        console.log(systemTime.getDeltaTime());
+
         player1.render(context);
         
         requestAnimationFrame(update);
