@@ -8,35 +8,34 @@ var events = {
 // checks all necesary external inputs, such as keys and mouse
 function checkEvents() {
     $(document).keydown(function(event) { logEvents(event, true); })
-    $(document).keypress(function(event) { logEvents(event, true); })
     $(document).keyup(function(event) { logEvents(event, false); })
 }
 
 // updates the current states (true or false) of the events in the game object section
 function logEvents(event, state) {
-    let heldDown = {
+    let keys = {
         32: function() { events.spacePressed = state },
         37: function() { events.leftArrowDown = state },
-        39: function() { events.rightArrowDown = state }
-        
+        39: function() { events.rightArrowDown = state } 
     }
-//    
-//    let pressed = {
-//    }
+
+    key = keys[event.which]
     
-    // checks to see if a key exists. If the key is found, the function is returned and run. If
-    // the key is not found, the return becomes 'undefined' which makes the if statement condition false
-    keyHeldDown = heldDown[event.which]
-    //keyPressed = pressed[event.which]
-    
-    if(keyHeldDown)
-        keyHeldDown();
-//    if(keyPressed) {
-//        keyPressed();
-//    }
-        
+    if(key)
+        key();
 }
 
+function systemTime() {
+    this.lastUpdate = Date.now();
+}
+
+systemTime.prototype.getDeltaTime = function() {
+    let currentUpdate = Date.now();
+    let deltaTime = currentUpdate - this.lastUpdate;
+    this.lastUpdate = currentUpdate;
+    
+    return deltaTime;
+}
 
 
 
@@ -101,22 +100,6 @@ gameObject.prototype.addVelocity = function(acceleration, direction) {
     this.velocity.add(convertToXYVector(acceleration, direction));
 }
 gameObject.prototype.act = function() {
-    
-    //Movement
-    this.velocity.setX(0);
-    if(events.rightArrowDown) {
-        this.velocity.setX(1);
-    }
-    if(events.leftArrowDown) {
-        this.velocity.setX(-1);
-    }
-    
-    //Jumping
-    if(events.spacePressed && this.effects.ground) {
-        this.effects.ground = false;
-        this.addVelocity(3, 90);
-    }
-    
     //Gravity
     if(this.effects.gravity && !this.effects.ground) {
         this.addVelocity(0.1, -90);
@@ -124,10 +107,9 @@ gameObject.prototype.act = function() {
     
     this.rectangle.position.add(this.velocity);
 }
-gameObject.prototype.collide = function(height) {
-    this.collisionLowerBound(height);
+gameObject.prototype.collide = function() {
 }
-gameObject.prototype.draw = function(context) {
+gameObject.prototype.render = function(context) {
     drawRect(context, this.rectangle);
 }
 
@@ -155,12 +137,51 @@ function convertToXYVector(speed, direction) {
 
 //-------------------------------------ACTION-------------------------------------//
 
+function player(x, y, height, width, color) {
+    gameObject.call(this, x, y, height, width, color);
+}
+
+player.prototype = Object.create(gameObject.prototype);
+
+//player.prototype.constructor = player;
+
+
+player.prototype.act = function() {
+    //Movement
+    this.velocity.setX(0);
+    
+    if(events.rightArrowDown) {
+        this.velocity.setX(1);
+    }
+    
+    if(events.leftArrowDown) {
+        this.velocity.setX(-1);
+    }
+        
+    //Jumping
+    if(events.spacePressed && this.effects.ground) {
+        this.effects.ground = false;
+        this.addVelocity(3, 90);
+    }
+    
+    // Calls the "super" (gameObject) method
+    gameObject.prototype.act.call(this);
+}
 
 
 
 
 
 //-----------------------------------COLLISION-------------------------------------//
+
+player.prototype.collide = function(height) {
+    gameObject.prototype.collisionLowerBound.call(this, height);
+}
+
+
+
+
+// All the different collision engines go here:
 
 // prevents object from falling below the bottom of the screen
 gameObject.prototype.collisionLowerBound = function(height) {
@@ -176,6 +197,10 @@ gameObject.prototype.collisionLowerBound = function(height) {
         this.effects.ground = true;
     }
 }
+
+
+
+
 
 
 
@@ -214,9 +239,10 @@ function setFillColor(context, color) {
 $(document).ready(function() {
     let canvas = document.getElementById('canvas');
     let context = canvas.getContext('2d');
+    let debug = document.getElementById('debug');
     
-    let player = new gameObject(10, 10, 20, 20, 'rgb(0, 102, 204)');
-    player.effects.gravity = true;
+    let player1 = new player(10, 10, 20, 20, 'rgb(0, 102, 204)');
+    player1.effects.gravity = true;
 
     update();
 
@@ -225,19 +251,22 @@ $(document).ready(function() {
         
         checkEvents();
         
-        player.act();
+        player1.act();
         
-        //console.log(player.velocity.print());
+        player1.collide(canvas.height);
         
-        player.collide(canvas.height);
+        //debug.innerHTML = ("Velocity: " + player1.velocity.print());
+        //debug.innerHTML = ("Delta Time: " + systemTime.prototype.getDeltaTime());
+        debug.innerHTML = ("Constructor:  " + player.prototype.constructor);
         
-        //console.log(player.velocity.print());
-
-        player.draw(context);
+        ///console.log(systemTime.getDeltaTime());
+        player1.render(context);
         
         requestAnimationFrame(update);
     }
 })
+
+
 
 
 
