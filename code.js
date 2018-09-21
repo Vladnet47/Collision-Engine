@@ -1,4 +1,135 @@
-//-------------------------------------SYSTEM------------------------------------//
+// ############################################ ENVIRONMENT ############################################ //
+
+function Environment() {
+    this.gameObjects = [];
+    this.globalEffects = {
+        gravity: { on: false, acceleration: 50 },
+        friction: { on: false, coef: 0.5 }
+    };
+}
+
+// Calculates the next position of each gameObject in the environment
+Environment.prototype.update = function(deltaTime) {
+    for(index = 0, len = this.gameObjects.length; index < len; ++index) {
+        
+        let gameObject = this.gameObjects[index];
+        let changeInVelocity = new vector(0,0);
+        let changeInPosition = new vector(0,0);
+
+        // CALCULATE CHANGE IN VELOCITY DUE TO GLOBAL EFFECTS
+        if(this.globalEffects.gravity.on) {
+            let magnitude = this.globalEffects.gravity.acceleration * deltaTime;
+            let change = convertToXY(magnitude, -90);
+
+            changeInVelocity.add(change);
+        }
+
+        if(this.globalEffects.friction.on && gameObject.getCollision().ground) {
+            let vel = gameObject.getVelocity().getX();
+            let accel = this.globalEffects.gravity.acceleration * this.globalEffects.friction.coef * deltaTime;
+            let change = new vector(0,0);
+
+            if( vel > accel ) {
+                change = convertToXY(accel, 180);
+            } else if ( vel < -accel ) {
+                change = convertToXY(accel, 0);
+            } else {
+                change = convertToXY(-vel, 0);
+            }
+
+            changeInVelocity.add(change);
+        }
+
+        // CALCULATE CHANGE IN VELOCITY DUE TO INDIVIDUAL MOVEMENT
+        changeInVelocity.add( gameObject.behave(deltaTime) );
+        
+        // CALCULATE CHANGE IN VELOCITY/POSITION DUE TO COLLISION
+        maxHeight = 600;
+        if( gameObject.getCollidable && this.collisionLowerBound(gameObject, changeInVelocity, maxHeight) ) {
+            let changes = this.collisionLowerBoundCalc(gameObject, changeInVelocity, maxHeight);
+            changeInPosition.add( changes.position );
+            changeInVelocity.add( changes.velocity );
+
+            gameObject.setCollision("ground", true);
+        } else {
+            gameObject.setCollision("ground", false);
+        }
+
+        // UPDATE VELOCITY
+        gameObject.addToVelocity(changeInVelocity);
+
+        // UPDATE POSITION
+        gameObject.addToPosition(gameObject.getVelocity());
+        gameObject.addToPosition(changeInPosition);
+
+        // UPDATE COLLISION EFFECTS
+        console.log(gameObject.getVelocity().getX());
+    }
+}
+
+// Draws each gameObject in the environment
+Environment.prototype.render = function(context) {
+    this.gameObjects.forEach( function(gameObject) {
+        drawRect(context, gameObject.getColor(), gameObject.getRectangle())
+    });
+}
+
+// COLLISION ENGINES ----------------------------------------------------------------------------------------------
+
+// Checks if gameObject has reached the desired height
+// Returns true if it has, false if it has not
+Environment.prototype.collisionLowerBound = function(gameObject, changeInVelocity, maxHeight) {
+    let gameObjectHeight = gameObject.getRectangle().getDimensions().getY();
+
+    if((gameObject.getPosition().getY() + changeInVelocity.getY() + gameObjectHeight) > maxHeight) {
+        return true;
+    }
+    return false;
+}
+
+// Returns an object containing the changes in position and velocity of the gameObject after collision
+// Return in the form { position: vector, velocity: vector } 
+Environment.prototype.collisionLowerBoundCalc = function(gameObject, changeInVelocity, maxHeight) {
+    let nextPosition = gameObject.getRectangle().getPosition().getY() + changeInVelocity.getY();
+    let diffInPos = nextPosition - maxHeight;
+    let gameObjectHeight = gameObject.getRectangle().getDimensions().getY();
+
+    let changes = { position: convertToXY( round( diffInPos + gameObjectHeight , 0), 90 ),
+                   velocity: convertToXY( gameObject.getVelocity().getY() + changeInVelocity.getY(), 90 )};
+
+    return changes;
+}
+
+// INITIALIZATION ------------------------------------------------------------------------------------------------
+
+// Standard 2D platformer
+Environment.prototype.init1 = function() {
+    this.globalEffects.gravity.on = true;
+    //this.globalEffects.friction.on = true;
+
+    let player = new Player( new rectangle( new vector(10, 10), new vector(20, 20) ), 'rgb(0, 102, 204)', new vector(0,0), 100 );
+    player.setCollidable(true);
+
+    this.gameObjects.push(player);
+}
+
+// DEBUG ---------------------------------------------------------------------------------------------------------
+// Checks if gameObject is undergoing a collision
+Environment.prototype.checkCollision = function(gameObject) {
+    return ("Collision event is [" + gameObject.properties.collision.ground + "]");
+}
+
+Environment.prototype.compareVelocities = function(v1, v2) {
+    return (v1.getX() + v2.getX());
+}
+
+
+
+
+
+
+
+// ############################################ SYSTEM ############################################ //
 
 var events = {
     // list of possible events
@@ -34,14 +165,18 @@ var events = {
 var systemTime = {
     lastUpdate: Date.now(),
 
-    // calculates the time between frames, in milliseconds
+    // calculates the time between frames, in seconds
     getDeltaTime: function() {
         let currentUpdate = Date.now();
-        let deltaTime = currentUpdate - this.lastUpdate;
-        this.lastUpdate = currentUpdate;
+        let deltaTime = currentUpdate - systemTime.lastUpdate;
+        systemTime.lastUpdate = currentUpdate;
     
-        return deltaTime;
+        return deltaTime / 1000;
     }
+}
+
+function round(value, decimal) {
+    return Math.round(value * Math.pow(10, decimal)) / Math.pow(10, decimal);
 }
 
 
@@ -51,7 +186,14 @@ var systemTime = {
 
 
 
-//---------------------------BASIC OBJECT PROPERTIES-----------------------------//
+
+
+
+
+
+// ############################################ BASIC DATA STRUCTURES ############################################ //
+
+// VECTOR ---------------------------------------------------------------------------------------------
 
 function vector(x, y) {
     this.x = x;
@@ -61,9 +203,13 @@ vector.prototype.add = function(other) {
     this.x += other.getX();
     this.y += other.getY();
 }
-vector.prototype.set = function(replacement) {
-    this.setX(replacement.getX());
-    this.setY(replacement.getY());
+vector.prototype.multScalar = function(scalar) {
+    this.x *= scalar;
+    this.y *= scalar;
+}
+vector.prototype.set = function(other) {
+    this.setX(other.getX());
+    this.setY(other.getY());
 }
 vector.prototype.setX = function(x) {
     this.x = x;
@@ -78,58 +224,98 @@ vector.prototype.getY = function() {
     return this.y;
 }
 vector.prototype.print = function() {
-    return ("(" + Math.round(this.getX()) + ", " + Math.round(this.getY()) + ")");
+    return ("(" + round(this.getX(), 3) + ", " + round(this.getY(), 3) + ")");
 }
 
-function rectangle(position, height, width, color) {
-    // physical attributes
-    this.position = position;
-    this.height = height;
-    this.width = width;
-    this.color = color;
-    
-    // functions
-    this.checkCollision = function(){};
-}
+// HELPER FUNCTIONS ---------------------------------------------------------------------------------------------
 
-function gameObject(x, y, height, width, color) {
-    this.rectangle = new rectangle(new vector(x, y), height, width, color);
-    this.velocity = new vector(0,0);
-    this.effects = {
-        gravity: false,
-        ground: false
-    };
+// Returns a vector with x and y components calculated from magnitude and direction.
+// Direction is given in degrees
+function convertToXY(magnitude, direction) {
+    let x = Math.cos(toRadians(direction)) * magnitude;
+    let y = Math.sin(toRadians(-direction)) * magnitude;
+    return ( new vector(x, y) );
 }
-gameObject.prototype.setVelocity = function(speed, direction) {
-    this.velocity.set(convertToXYVector(speed, direction));
-}
-gameObject.prototype.addVelocity = function(acceleration, direction) {
-    this.velocity.add(convertToXYVector(acceleration, direction));
-}
-gameObject.prototype.act = function() {
-    //Gravity
-    if(this.effects.gravity && !this.effects.ground) {
-        this.addVelocity(0.1, -90);
-    }
-    
-    this.rectangle.position.add(this.velocity);
-}
-gameObject.prototype.collide = function() {
-}
-gameObject.prototype.render = function(context) {
-    drawRect(context, this.rectangle);
-}
-
 
 function toRadians(degrees) {
     return degrees * (Math.PI / 180);
 }
 
-function convertToXYVector(speed, direction) {
-    let x = Math.cos(toRadians(direction)) * speed;
-    // since vertical axis is flipped in canvas, the negative sign corrects input direction
-    let y = Math.sin(toRadians(-direction)) * speed;
-    return (new vector(x,y));
+// RECTANGLE ---------------------------------------------------------------------------------------------
+
+function rectangle(position, dimensions) {
+    this.position = position;
+    this.dimensions = dimensions;
+}
+
+rectangle.prototype.getPosition = function() {
+    return this.position;
+}
+rectangle.prototype.getCenter = function() {
+    return new vector( this.position.getX() + this.width/2,
+                       this.position.getY() + this.height/2 )
+}
+rectangle.prototype.getDimensions = function() {
+    return this.dimensions;
+}
+rectangle.prototype.print = function() {
+    return ( "Position: " + this.getPosition() + " --- Dimensions: " + this.getDimensions());
+}
+
+// GAMEOBJECT ---------------------------------------------------------------------------------------------
+
+function gameObject(rectangle, color, velocity, mass) {
+    this.rectangle = rectangle;
+    this.color = color;
+    this.velocity = velocity;
+    this.mass = mass;
+    this.properties = { 
+        collidable: false, 
+        collision: { ground: false }
+    }
+}
+
+gameObject.prototype.getPosition = function() {
+    return this.rectangle.getPosition();
+}
+gameObject.prototype.getRectangle = function() {
+    return this.rectangle;
+}
+gameObject.prototype.getColor = function() {
+    return this.color;
+}
+gameObject.prototype.getVelocity = function() {
+    return this.velocity;
+}
+gameObject.prototype.getMass = function() {
+    return this.mass;
+}
+gameObject.prototype.getCollidable = function() {
+    return this.properties.collidable;
+}
+gameObject.prototype.getCollision = function() {
+    return this.properties.collision;
+}
+
+
+gameObject.prototype.setCollidable = function(state) {
+    this.properties.collidable = state;
+}
+gameObject.prototype.setCollision = function(type, state) {
+    this.properties.collision[type] = state;
+}
+gameObject.prototype.addToVelocity = function(changeInVelocity) {
+    this.velocity.add(changeInVelocity);
+}
+gameObject.prototype.addToPosition = function(changeInPosition) {
+    this.rectangle.position.add(changeInPosition);
+}
+
+gameObject.prototype.behave = function() {
+    return new vector(0,0);
+}
+gameObject.prototype.collide = function() {
+
 }
 
 
@@ -141,84 +327,63 @@ function convertToXYVector(speed, direction) {
 
 
 
+// ############################################ GAMEOBJECTS ############################################ //
 
-//-------------------------------------ACTION-------------------------------------//
+// SETUP ---------------------------------------------------------------------------------------------
 
-function player(x, y, height, width, color) {
-    gameObject.call(this, x, y, height, width, color);
+function Player(rectangle, color, velocity, mass) {
+    gameObject.call(this, rectangle, color, velocity, mass);
+
+    this.traits = {
+        move: { maxSpeed: 5, accel: 50 },
+        jump: { speed: 10, numOf: 1 }
+    }
 }
 
-player.prototype = Object.create(gameObject.prototype);
+// make gameObject the 'super' class, and specify player's constructor
+Player.prototype = Object.create(gameObject.prototype);
+Player.prototype.constructor = Player;
 
-player.prototype.constructor = player;
+// BEHAVIOR ---------------------------------------------------------------------------------------------
 
 
-player.prototype.act = function() {
+Player.prototype.behave = function(deltaTime) {
     //Movement
-    this.velocity.setX(0);
-    
-    if(events.rightArrowDown) {
-        this.velocity.setX(1);
-    }
-    
-    if(events.leftArrowDown) {
-        this.velocity.setX(-1);
-    }
+    return (this.controls(deltaTime));
         
     //Jumping
-    if(events.spaceDown && this.effects.ground) {
-        this.effects.ground = false;
-        this.addVelocity(3, 90);
-    }
+    // if(events.spaceDown && this.effects.ground) {
+    //     this.effects.ground = false;
+    //     this.addVelocity(3, 90);
+    // }
+}
+
+Player.prototype.controls = function(deltaTime) {
+    let changeInVelocity = new vector(0,0);
     
-    // Calls the "super" (gameObject) method
-    gameObject.prototype.act.call(this);
-}
-
-
-
-
-
-//-----------------------------------COLLISION-------------------------------------//
-
-player.prototype.collide = function(height) {
-    gameObject.prototype.collisionLowerBound.call(this, height);
-}
-
-
-
-
-// All the different collision engines go here:
-
-// prevents object from falling below the bottom of the screen
-gameObject.prototype.collisionLowerBound = function(height) {
-    if((this.rectangle.position.getY() + this.rectangle.height) > height) {
-        
-        // raise position
-        this.rectangle.position.set(new vector(this.rectangle.position.getX(), height-this.rectangle.height))
-        
-        // reset motion
-        this.velocity.setY(0);
-        
-        // signal that player has reached ground
-        this.effects.ground = true;
+    if(events.rightArrowDown && this.getVelocity().getX() < this.traits.move.maxSpeed) {
+        changeInVelocity.add( convertToXY( this.traits.move.accel * deltaTime, 0) );
+    } else if (events.leftArrowDown && this.getVelocity().getX() > -this.traits.move.maxSpeed) {
+        changeInVelocity.add( convertToXY( this.traits.move.accel * deltaTime, 180) );
     }
+
+    return changeInVelocity;
 }
 
+// COLLISION ---------------------------------------------------------------------------------------------
 
 
 
 
 
+// ############################################ RENDERING ############################################ //
 
-
-
-
-//------------------------------------DRAWING--------------------------------------//
-
-function drawRect(context, rectangle) {
-    setFillColor(context, rectangle.color);
-    context.fillRect(rectangle.position.getX(), rectangle.position.getY(), rectangle.height, rectangle.width);
+function drawRect(context, color, rectangle) {
+    context.fillStyle = color;
+    context.fillRect(rectangle.getPosition().getX(), 
+                     rectangle.getPosition().getY(), 
+                     rectangle.getDimensions().getX(), 
+                     rectangle.getDimensions().getY());
 }
 
 function drawLine(context, vector) {
@@ -227,10 +392,41 @@ function drawLine(context, vector) {
     context.stroke();
 }
 
-// takes parameters in readable form for 'context' object - a string
-// (for example) color = "rgb(0, 102, 204)"
-function setFillColor(context, color) {
-    context.fillStyle = color;
+
+
+
+
+// ############################################ GAME LOOP ############################################ //
+
+$(document).ready(function() {
+    let canvas = initCanvas();
+    let context = canvas.getContext('2d');
+    //let debug = document.getElementById('debug');
+    
+    let envir = new Environment();
+    envir.init1();
+
+    tick();
+
+    function tick() {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        
+        let deltaTime = systemTime.getDeltaTime();
+        events.checkEvents();
+
+        envir.update(deltaTime);
+        envir.render(context);
+        
+        requestAnimationFrame(tick);
+    }
+})
+
+function initCanvas() {
+    let canvas = document.getElementById('canvas');
+    canvas.width = window.innerWidth - 20;
+    canvas.height = window.innerHeight - 20;
+
+    return canvas;
 }
 
 
@@ -238,56 +434,7 @@ function setFillColor(context, color) {
 
 
 
+// HELPFUL SNIPPETS ----------------------------------------------------------------------
 
-
-
-//################################## GAME LOOP ###################################//
-
-$(document).ready(function() {
-    let canvas = document.getElementById('canvas');
-    let context = canvas.getContext('2d');
-    let debug = document.getElementById('debug');
-    
-    let player1 = new player(10, 10, 20, 20, 'rgb(0, 102, 204)');
-    player1.effects.gravity = true;
-
-    update();
-
-    function update() {
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        
-        events.checkEvents();
-        
-        player1.act();
-        
-        player1.collide(canvas.height);
-        
-        //debug.innerHTML = ("Velocity: " + player1.velocity.print());
-
-        console.log(systemTime.getDeltaTime());
-
-        player1.render(context);
-        
-        requestAnimationFrame(update);
-    }
-})
-
-
-
-
-
-
-//window.onload = function() {
-// let counter = 0;    
-//    
-// function callback(timestamp) {
-//     console.log(counter);
-//     counter++;
-//     requestAnimationFrame(callback);
-// }
-//    
-// requestAnimationFrame(callback);
-//}
-
-
-
+// Calls the "super" (gameObject) method from Player
+// gameObject.prototype.behave.call(this);
