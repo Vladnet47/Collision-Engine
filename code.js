@@ -3,29 +3,28 @@
 function Environment() {
     this.gameObjects = [];
     this.globalEffects = {
-        gravity: { on: false, acceleration: 100, terminalVelocity: 200 },
+        gravity: { on: false, acceleration: 400, terminalVelocity: 400 },
         friction: { on: false, coef: 0.3 }
     };
-
 
     // debug
     this.timer = 1;
     this.elapsedTime = 0;
 }
 
-// Calculates the next position of each gameObject in the environment
+// Calculates the next position of each GameObject in the environment
 Environment.prototype.update = function(deltaTime) {
     this.behave(deltaTime);
     this.collide(deltaTime);
 }
 
-// Updates positions of all gameObjects before collision
+// Updates positions of all GameObjects before collision
 Environment.prototype.behave = function(deltaTime) {
     for(index = 0, len = this.gameObjects.length; index < len; ++index) {
 
         let gameObject = this.gameObjects[index];
-        let changeInVelocity = { instant: new vector(0,0), delta: new vector(0,0) };
-        let changeInPosition = { instant: new vector(0,0), delta: new vector(0,0) };
+        let changeInVelocity = { instant: new Vector(0,0), delta: new Vector(0,0) };
+        let changeInPosition = { instant: new Vector(0,0), delta: new Vector(0,0) };
 
         // CALCULATE CHANGE IN VELOCITY DUE TO GLOBAL EFFECTS
         if(this.globalEffects.gravity.on && gameObject.getVelocity().getY() <= this.globalEffects.gravity.terminalVelocity) {
@@ -35,10 +34,10 @@ Environment.prototype.behave = function(deltaTime) {
             changeInVelocity.delta.add(change);
         }
 
-        // if(this.globalEffects.friction.on && gameObject.getCollision().ground) {
+        // if(this.globalEffects.friction.on && GameObject.getCollision().ground) {
         //     let vel = gameObject.getVelocity().getX();
         //     let accel = this.globalEffects.gravity.acceleration * this.globalEffects.friction.coef; //
-        //     let change = new vector(0,0);
+        //     let change = new Vector(0,0);
 
         //     if( vel > accel*deltaTime ) {
         //         change = convertToXY(accel, 180);
@@ -59,7 +58,7 @@ Environment.prototype.behave = function(deltaTime) {
         // UPDATE POSITION AND VELOCITY
         
         this.updateVel(gameObject, changeInVelocity, deltaTime);
-        changeInPosition.delta = vectorScalar(gameObject.getVelocity(), deltaTime);
+        changeInPosition.delta = VectorScalar(gameObject.getVelocity(), deltaTime);
         this.updatePos(gameObject, changeInPosition, deltaTime);
     }
 }
@@ -69,10 +68,12 @@ Environment.prototype.collide = function(deltaTime) {
     for(index = 0, len = this.gameObjects.length; index < len; ++index) {
 
         let gameObject = this.gameObjects[index];
-        let changeInVelocity = { instant: new vector(0,0), delta: new vector(0,0) };
-        let changeInPosition = { instant: new vector(0,0), delta: new vector(0,0) };
+        let changeInVelocity = { instant: new Vector(0,0), delta: new Vector(0,0) };
+        let changeInPosition = { instant: new Vector(0,0), delta: new Vector(0,0) };
 
         // CALCULATE CHANGE IN VELOCITY/POSITION DUE TO COLLISION
+
+        // Bottom line
         maxHeight = 600;
         if( gameObject.getCollidable() && this.collisionLowerBound(gameObject, maxHeight) ) {
             let instantChanges = this.collisionLowerBoundCalc(gameObject, maxHeight);
@@ -84,6 +85,24 @@ Environment.prototype.collide = function(deltaTime) {
             gameObject.setCollision("ground", false);
         }
 
+        // Segment engine
+        for(index2 = 0, len = this.gameObjects.length; index2 < len; ++index2) {
+            if(index2 == index) {
+                continue;
+            }
+            let other = this.gameObjects[index2];
+            if( gameObject.getCollidable() && this.collisionRec(gameObject, other)) {
+                let changes = this.collisionRecCalc(gameObject, other);
+                changeInPosition.instant.add( changes.position.instant );
+                changeInVelocity.instant.add( changes.velocity.instant );
+
+                gameObject.setCollision("ground", true);
+            } else {
+                gameObject.setCollision("ground", false);
+            }
+        }
+        
+
         // UPDATE COLLISION EFFECTS
 
         // UPDATE POSITION AND VELOCITY
@@ -93,24 +112,24 @@ Environment.prototype.collide = function(deltaTime) {
         //DEBUG
 
         // Timer
-        let frequency = 1; // time in seconds
-        if( this.timer >= frequency ) {
-            console.log(this.checkYStats(gameObject));
-            this.elapsedTime += this.timer;
-            this.timer = 0;
-        } else {
-            this.timer += deltaTime;
-        }
+        // let frequency = 1; // time in seconds
+        // if( this.timer >= frequency ) {
+        //     console.log(this.printYStats(gameObject));
+        //     this.elapsedTime += this.timer;
+        //     this.timer = 0;
+        // } else {
+        //     this.timer += deltaTime;
+        // }
 
         // Available functions
-        // console.log(this.checkCollision(gameObject));
-        // console.log(this.checkXStats(gameObject));
-        // console.log(this.checkYStats(gameObject));
+        // console.log(this.checkCollision(GameObject));
+        // console.log(this.printXStats(GameObject));
+        // console.log(this.printYStats(GameObject));
     }
 }
 
 Environment.prototype.updateVel = function(gameObject, changeInVelocity, deltaTime) {
-    changeInVelocity.delta = vectorScalar(changeInVelocity.delta, deltaTime);
+    changeInVelocity.delta = VectorScalar(changeInVelocity.delta, deltaTime);
     gameObject.addToVelocity( changeInVelocity.delta );
     gameObject.addToVelocity( changeInVelocity.instant );
 }
@@ -122,19 +141,19 @@ Environment.prototype.updatePos = function(gameObject, changeInPosition, deltaTi
 
 
 
-// Draws each gameObject in the environment
+// Draws each GameObject in the environment
 Environment.prototype.render = function(context) {
     this.gameObjects.forEach( function(gameObject) {
-        drawRect(context, gameObject.getColor(), gameObject.getRectangle());
+        drawRect(context, gameObject);
     });
 }
 
 // COLLISION ENGINES ----------------------------------------------------------------------------------------------
 
-// Checks if gameObject has reached the desired height
+// Checks if GameObject has reached the desired height
 // Returns true if it has, false if it has not
 Environment.prototype.collisionLowerBound = function(gameObject, maxHeight) {
-    let objectHeight = gameObject.getRectangle().getDimensions().getY();
+    let objectHeight = gameObject.getDimensions().getY();
 
     if((gameObject.getPosition().getY() + objectHeight) >= maxHeight) {
         return true;
@@ -142,11 +161,11 @@ Environment.prototype.collisionLowerBound = function(gameObject, maxHeight) {
     return false;
 }
 
-// Returns an object containing the changes in position and velocity of the gameObject after collision
-// Return in the form { position: vector, velocity: vector } 
+// Returns an object containing the changes in position and velocity of the GameObject after collision
+// Return in the form { position: Vector, velocity: Vector } 
 Environment.prototype.collisionLowerBoundCalc = function(gameObject, maxHeight) {
-    let objectPosition = gameObject.getRectangle().getPosition().getY();
-    let objectHeight = gameObject.getRectangle().getDimensions().getY();
+    let objectPosition = gameObject.getPosition().getY();
+    let objectHeight = gameObject.getDimensions().getY();
     let difference = objectPosition + objectHeight - maxHeight;
 
     let instantChanges = { position: convertToXY( difference , 90 ),
@@ -155,34 +174,69 @@ Environment.prototype.collisionLowerBoundCalc = function(gameObject, maxHeight) 
     return instantChanges;
 }
 
+
+Environment.prototype.collisionRec = function(gameObject, other) {
+    return recRecIntersect( gameObject.getRectangle(), other.getRectangle() );
+}
+
+Environment.prototype.collisionRecCalc = function(gameObject, other) {
+    let top = other.getRectangle().getSegmentTop();
+    let right = other.getRectangle().getSegmentRight();
+    let left = other.getRectangle().getSegmentLeft();
+    let bottom = other.getRectangle().getSegmentBottom();
+
+    if (recSegIntersect(gameObject.getRectangle(), top)) {
+        return gameObject.collided("top", top);
+    } else if (recSegIntersect(gameObject.getRectangle(), right)) {
+        return gameObject.collided("right", right);
+    } else if (recSegIntersect(gameObject.getRectangle(), left)) {
+        return gameObject.collided("left", left);
+    } else if (recSegIntersect(gameObject.getRectangle(), bottom)) {
+        return gameObject.collided("bottom", bottom);
+    }
+}
+
+Environment.prototype.getSegment = function(gameObject, other) {
+
+}
+
 // INITIALIZATION ------------------------------------------------------------------------------------------------
 
 // Standard 2D platformer
 Environment.prototype.init1 = function() {
     this.globalEffects.gravity.on = true;
-    this.globalEffects.friction.on = true;
+    //this.globalEffects.friction.on = true;
 
-    let player = new Player( new rectangle( new vector(10, 10), new vector(20, 20) ), 'rgb(0, 102, 204)', new vector(0,0), 100 );
+    let player = new Player( new Rectangle( new Vector(50, 500), new Vector(40, 40) ), 
+                             'rgb(0, 153, 255)', 
+                             new Vector(0,-300), 
+                             100 );
+    let platform1 = new Platform( new Rectangle( new Vector(200, 200), new Vector(100, 300) ), 
+                                  'rgb(255, 153, 102)', 
+                                  new Vector(20,0), 
+                                  100 );
+    platform1.setCollidable(true);
     player.setCollidable(true);
 
+    this.gameObjects.push(platform1);
     this.gameObjects.push(player);
 }
 
 // DEBUG ---------------------------------------------------------------------------------------------------------
-// Checks if gameObject is undergoing a collision
+// Checks if GameObject is undergoing a collision
 Environment.prototype.checkCollision = function(gameObject) {
     return ("Collision with ground is [" + gameObject.properties.collision.ground + "]");
 }
 
-Environment.prototype.checkYStats = function(gameObject) {
+Environment.prototype.printYStats = function(gameObject) {
     return ("[" + round(this.elapsedTime, 1) + 
-            "] Y: position is [" + gameObject.getRectangle().getPosition().getY() + 
+            "] Y: position is [" + gameObject.getPosition().getY() + 
             "] and velocity is [" + gameObject.getVelocity().getY() + "]");
 }
 
-Environment.prototype.checkXStats = function(gameObject) {
+Environment.prototype.printXStats = function(gameObject) {
     return ("[" + round(this.elapsedTime, 1) + 
-            "] X: position is [" + gameObject.getRectangle().getPosition().getX() + 
+            "] X: position is [" + gameObject.getPosition().getX() + 
             "] and velocity is [" + gameObject.getVelocity().getX() + "]");
 }
 
@@ -246,21 +300,7 @@ function round(value, decimal) {
     return Math.round(value * Math.pow(10, decimal)) / Math.pow(10, decimal);
 }
 
-function roundVector(vect, decimal) {
-    let result = new vector(0,0);
-    result.setX( round( vect.getX(), decimal ) );
-    result.setY( round( vect.getY(), decimal ) );
-    return result;
-}
-
-function vectorScalar(vect, scalar) {
-    let result = new vector(0,0);
-    result.setX( vect.getX() * scalar );
-    result.setY( vect.getY() * scalar );
-    return result;
-}
-
-// returns 1 if positive, -1 if negative and 0 if equal to zero
+// returns 1 if value is positive, -1 if negative and 0 if equal to zero
 function getSign(value) {
     let sign = 0;
     if(value != 0) {
@@ -268,6 +308,59 @@ function getSign(value) {
     }
     return sign;
 }
+
+// rounds Vector to a decimal
+function VectorRound(vect, decimal) {
+    let result = new Vector(0,0);
+    result.setX( round( vect.getX(), decimal ) );
+    result.setY( round( vect.getY(), decimal ) );
+    return result;
+}
+
+// multiplies the Vector by the scalar
+function VectorScalar(vect, scalar) {
+    let result = new Vector(0,0);
+    result.setX( vect.getX() * scalar );
+    result.setY( vect.getY() * scalar );
+    return result;
+}
+
+// Given two ranges, returns true if ranges overlap
+// Does not matter which is min and which is max
+// Endpoints do not count as overlap
+function rangeOverlap(min1, max1, min2, max2) {
+    return( Math.min(min1, max1) < Math.max(min2, max2) && Math.max(min1, max1) > Math.min(min2, max2) );
+}
+
+function segSegIntersect() {
+
+}
+
+function recSegIntersect(rec, seg) {
+    let top = rec.getSegmentTop();
+    let side = rec.getSegmentRight();
+
+    if( rangeOverlap( top.getPos1().getX(), top.getPos2().getX(), seg.getPos1().getX(), seg.getPos2().getX() ) &&
+        rangeOverlap( side.getPos1().getY(), side.getPos2().getY(), seg.getPos1().getY(), seg.getPos2().getY() ) ) {
+        return true;
+    }
+    return false;
+}
+
+function recRecIntersect(rec1, rec2) {
+    let top1 = rec1.getSegmentTop();
+    let side1 = rec1.getSegmentRight();
+    let top2 = rec2.getSegmentTop();
+    let side2 = rec2.getSegmentRight();
+
+    if( rangeOverlap( top1.getPos1().getX(), top1.getPos2().getX(), top2.getPos1().getX(), top2.getPos2().getX() ) &&
+        rangeOverlap( side1.getPos1().getY(), side1.getPos2().getY(), side2.getPos1().getY(), side2.getPos2().getY() ) ) {
+        return true;
+    }
+    return false;
+}
+
+
 
 
 
@@ -283,79 +376,130 @@ function getSign(value) {
 
 // ############################################ BASIC DATA STRUCTURES ############################################ //
 
-// VECTOR ---------------------------------------------------------------------------------------------
+// Vector ---------------------------------------------------------------------------------------------
 
-function vector(x, y) {
+function Vector(x, y) {
     this.x = x;
     this.y = y;
 }
-vector.prototype.add = function(other) {
+Vector.prototype.add = function(other) {
     this.x += other.getX();
     this.y += other.getY();
 }
-vector.prototype.set = function(other) {
+Vector.prototype.set = function(other) {
     this.setX(other.getX());
     this.setY(other.getY());
 }
-vector.prototype.setX = function(x) {
+Vector.prototype.setX = function(x) {
     this.x = x;
 }
-vector.prototype.setY = function(y) {
+Vector.prototype.setY = function(y) {
     this.y = y;
 }
-vector.prototype.getX = function() {
+Vector.prototype.getX = function() {
     return this.x;
 }
-vector.prototype.getY = function() {
+Vector.prototype.getY = function() {
     return this.y;
 }
-vector.prototype.print = function() {
+Vector.prototype.getMagnitude = function() {
+    return Math.sqrt( Math.pow(this.x, 2) + Math.pow(this.y, 2) );
+}
+Vector.prototype.print = function() {
     return ("(" + round(this.getX(), 3) + ", " + round(this.getY(), 3) + ")");
 }
 
 // HELPER FUNCTIONS ---------------------------------------------------------------------------------------------
 
-// Returns a vector with x and y components calculated from magnitude and direction.
+// Returns a Vector with x and y components calculated from magnitude and direction.
 // Direction is given in degrees
 function convertToXY(magnitude, direction) {
     let x = Math.cos(toRadians(direction)) * magnitude;
     let y = Math.sin(toRadians(-direction)) * magnitude;
-    return ( new vector(x, y) );
+    return ( new Vector(x, y) );
 }
 
 function toRadians(degrees) {
     return degrees * (Math.PI / 180);
 }
 
-// RECTANGLE ---------------------------------------------------------------------------------------------
+// SEGMENT -----------------------------------------------------------------------------------------------
 
-function rectangle(position, dimensions) {
+// Constructs line segment from two Vectors as endpoints
+function Segment(pos1, pos2) {
+    this.pos1 = pos1;
+    this.pos2 = pos2;
+}
+
+// Constructs line segment over a Vector, given a position Vector
+Segment.prototype.constructFromVector = function(pos, vec) {
+    let temp = new Vector(0,0);
+    temp.add(pos);
+    temp.add(vec);
+
+    this.pos1 = pos;
+    this.pos2 = temp;
+}
+
+Segment.prototype.getPos1 = function() {
+    return this.pos1;
+}
+Segment.prototype.getPos2 = function() {
+    return this.pos2;
+}
+Segment.prototype.print = function() {
+    return "Endpoints of segment are " + this.pos1.print() + " and " + this.pos2.print();
+}
+
+
+// Rectangle ---------------------------------------------------------------------------------------------
+
+function Rectangle(position, dimensions) {
     this.position = position;
     this.dimensions = dimensions;
 }
 
-rectangle.prototype.getPosition = function() {
+Rectangle.prototype.getPosition = function() {
     return this.position;
 }
-rectangle.prototype.getCenter = function() {
-    return new vector( this.position.getX() + this.width/2,
+Rectangle.prototype.getCenter = function() {
+    return new Vector( this.position.getX() + this.width/2,
                        this.position.getY() + this.height/2 )
 }
-rectangle.prototype.getDimensions = function() {
+Rectangle.prototype.getDimensions = function() {
     return this.dimensions;
 }
+Rectangle.prototype.getSegmentTop = function() { //ask dad about inheritance
+    let temp = new Vector(this.position.getX() + this.dimensions.getX(), this.position.getY());
+    return new Segment( this.position, temp );
+}
+Rectangle.prototype.getSegmentRight = function() {
+    let temp1 = new Vector(this.position.getX() + this.dimensions.getX(), this.position.getY());
+    let temp2 = new Vector(this.position.getX() + this.dimensions.getX(), this.position.getY() + this.dimensions.getY());
+    return new Segment( temp1, temp2 );
+}
+Rectangle.prototype.getSegmentBottom = function() {
+    let temp1 = new Vector(this.position.getX(), this.position.getY() + this.dimensions.getY());
+    let temp2 = new Vector(this.position.getX() + this.dimensions.getX(), this.position.getY() + this.dimensions.getY());
+    return new Segment( temp1, temp2 );
+}
+Rectangle.prototype.getSegmentLeft = function() {
+    let temp = new Vector(this.position.getX(), this.position.getY() + this.dimensions.getY());
+    return new Segment( this.position, temp );
+}
 
-rectangle.prototype.setPosition = function(other) {
+
+Rectangle.prototype.setPosition = function(other) {
     this.position = other;
 }
-rectangle.prototype.print = function() {
+Rectangle.prototype.print = function() {
     return ( "Position: " + this.getPosition().print() + " --- Dimensions: " + this.getDimensions().print());
 }
 
-// GAMEOBJECT ---------------------------------------------------------------------------------------------
+// GameObject ---------------------------------------------------------------------------------------------
 
-function gameObject(rectangle, color, velocity, mass) {
-    this.rectangle = rectangle;
+function GameObject(Rectangle, color, velocity, mass) {
+    this.Rectangle = Rectangle;
     this.color = color;
     this.velocity = velocity;
     this.mass = mass;
@@ -365,47 +509,51 @@ function gameObject(rectangle, color, velocity, mass) {
     }
 }
 
-gameObject.prototype.getPosition = function() {
-    return this.rectangle.getPosition();
+GameObject.prototype.getPosition = function() {
+    return this.Rectangle.getPosition();
 }
-gameObject.prototype.getRectangle = function() {
-    return this.rectangle;
+GameObject.prototype.getDimensions = function() {
+    return this.Rectangle.getDimensions();
 }
-gameObject.prototype.getColor = function() {
+GameObject.prototype.getRectangle = function() {
+    return this.Rectangle;
+}
+GameObject.prototype.getColor = function() {
     return this.color;
 }
-gameObject.prototype.getVelocity = function() {
+GameObject.prototype.getVelocity = function() {
     return this.velocity;
 }
-gameObject.prototype.getMass = function() {
+GameObject.prototype.getMass = function() {
     return this.mass;
 }
-gameObject.prototype.getCollidable = function() {
+GameObject.prototype.getCollidable = function() {
     return this.properties.collidable;
 }
-gameObject.prototype.getCollision = function() {
+GameObject.prototype.getCollision = function() {
     return this.properties.collision;
 }
 
 
-gameObject.prototype.setCollidable = function(state) {
+GameObject.prototype.setCollidable = function(state) {
     this.properties.collidable = state;
 }
-gameObject.prototype.setCollision = function(type, state) {
+GameObject.prototype.setCollision = function(type, state) {
     this.properties.collision[type] = state;
 }
-gameObject.prototype.addToVelocity = function(changeInVelocity) {
+GameObject.prototype.addToVelocity = function(changeInVelocity) {
     this.velocity.add(changeInVelocity);
 }
-gameObject.prototype.addToPosition = function(changeInPosition) {
-    this.rectangle.position.add(changeInPosition);
+GameObject.prototype.addToPosition = function(changeInPosition) {
+    this.Rectangle.position.add(changeInPosition);
 }
 
-gameObject.prototype.behave = function() {
-    return new vector(0,0);
+GameObject.prototype.behave = function() {
+    return { instant: new Vector(0,0), delta: new Vector(0,0) };
 }
-gameObject.prototype.collide = function() {
-
+GameObject.prototype.collided = function() {
+    return { position: { instant: new Vector(0,0), delta: new Vector(0,0) }, 
+             velocity: { instant: new Vector(0,0), delta: new Vector(0,0) } };
 }
 
 
@@ -417,28 +565,33 @@ gameObject.prototype.collide = function() {
 
 
 
-// ############################################ GAMEOBJECTS ############################################ //
+// ############################################ GameObjectS ############################################ //
 
 // SETUP ---------------------------------------------------------------------------------------------
 
-function Player(rectangle, color, velocity, mass) {
-    gameObject.call(this, rectangle, color, velocity, mass);
+function Player(Rectangle, color, velocity, mass) {
+    GameObject.call(this, Rectangle, color, velocity, mass);
 
     this.traits = {
-        move: { maxSpeed: 100, accel: 100 },
-        jump: { speed: 100, maxJumps: 2, curJump: 0, letGo: false }
+        move: { maxSpeed: 200, accel: 50 },
+        jump: { speed: 400, maxJumps: 10, curJump: 0, letGo: false }
     }
 }
 
-// make gameObject the 'super' class, and specify player's constructor
-Player.prototype = Object.create(gameObject.prototype);
+function Platform(Rectangle, color, velocity, mass) {
+    GameObject.call(this, Rectangle, color, velocity, mass);
+}
+
+// make GameObject the 'super' class, and specify player's constructor
+Player.prototype = Object.create(GameObject.prototype);
 Player.prototype.constructor = Player;
+Platform.prototype = Object.create(GameObject.prototype);
+Platform.prototype.constructor = Player;
 
 // BEHAVIOR ---------------------------------------------------------------------------------------------
 
-
 Player.prototype.behave = function() {
-    let indivChanges = { instant: new vector(0,0), delta: new vector(0,0) };
+    let indivChanges = { instant: new Vector(0,0), delta: new Vector(0,0) };
     
     // Jump
     let jumpChanges = this.jumpPlatformer();
@@ -454,7 +607,7 @@ Player.prototype.behave = function() {
 }
 
 Player.prototype.movePlatformer = function() {
-    let indivChanges = { instant: new vector(0,0), delta: new vector(0,0) };
+    let indivChanges = { instant: new Vector(0,0), delta: new Vector(0,0) };
     let playerVelocityX = this.getVelocity().getX();
     let playerVelocityABS = Math.abs(playerVelocityX);
 
@@ -475,7 +628,7 @@ Player.prototype.movePlatformer = function() {
 }
 
 Player.prototype.jumpPlatformer = function() {
-    let indivChanges = { instant: new vector(0,0), delta: new vector(0,0) };
+    let indivChanges = { instant: new Vector(0,0), delta: new Vector(0,0) };
 
     // Reset number of jumps once player touches ground
     if(this.properties.collision.ground) {
@@ -492,14 +645,11 @@ Player.prototype.jumpPlatformer = function() {
     // If there are jumps available 
     // Then jump
     if( events.spaceDown && this.traits.jump.letGo && this.traits.jump.curJump < this.traits.jump.maxJumps) {
-        console.log("here");
         this.traits.jump.curJump++;
         this.traits.jump.letGo = false;
         let currentVelocity = this.getVelocity().getY();
 
-        if(-currentVelocity < this.traits.jump.speed) {
-            indivChanges.instant.add( convertToXY( this.traits.jump.speed + currentVelocity, 90 ) );
-        }  
+        indivChanges.instant.add( convertToXY( this.traits.jump.speed + currentVelocity, 90 ) );
     }
 
     return indivChanges;
@@ -507,23 +657,53 @@ Player.prototype.jumpPlatformer = function() {
 
 // COLLISION ---------------------------------------------------------------------------------------------
 
+Player.prototype.collided = function(type, segment) {
+    if(type == "top") {
+        let difference = this.getPosition().getY() + this.getDimensions().getY() - segment.getPos1().getY();
 
+        return { position: { instant: convertToXY( difference , 90 ), delta: new Vector(0,0) }, 
+                 velocity: { instant: convertToXY( this.getVelocity().getY(), 90 ), delta: new Vector(0,0) } };
+    }
+
+    if(type == "right") {
+        let difference = segment.getPos1().getX() - this.getPosition().getX();
+
+        return { position: { instant: convertToXY( difference , 0 ), delta: new Vector(0,0) }, 
+                 velocity: { instant: convertToXY( this.getVelocity().getX(), 0 ), delta: new Vector(0,0) } };
+    }
+
+    if(type == "left") {
+        let difference = this.getPosition().getX() + this.getDimensions().getX() - segment.getPos1().getX();
+
+        return { position: { instant: convertToXY( difference , 180 ), delta: new Vector(0,0) }, 
+                 velocity: { instant: convertToXY( this.getVelocity().getX(), 180 ), delta: new Vector(0,0) } };
+    }
+
+    if(type == "bottom") {
+        let difference = segment.getPos1().getY() - this.getPosition().getX();
+
+        return { position: { instant: convertToXY( difference , -90 ), delta: new Vector(0,0) }, 
+                 velocity: { instant: convertToXY( this.getVelocity().getY(), -90 ), delta: new Vector(0,0) } };
+    }
+
+    GameObject.prototype.collided.call(this);
+}
 
 
 
 // ############################################ RENDERING ############################################ //
 
-function drawRect(context, color, rectangle) {
-    context.fillStyle = color;
-    context.fillRect(rectangle.getPosition().getX(), 
-                     rectangle.getPosition().getY(), 
-                     rectangle.getDimensions().getX(), 
-                     rectangle.getDimensions().getY());
+function drawRect(context, gameObject) {
+    context.fillStyle = gameObject.getColor();
+    context.fillRect(gameObject.getPosition().getX(), 
+                     gameObject.getPosition().getY(), 
+                     gameObject.getDimensions().getX(), 
+                     gameObject.getDimensions().getY());
 }
 
-function drawLine(context, vector) {
+function drawLine(context, Vector) {
     context.moveTo(0,0);
-    context.lineTo(vector.x, vector.y);
+    context.lineTo(Vector.x, Vector.y);
     context.stroke();
 }
 
@@ -536,14 +716,13 @@ function drawLine(context, vector) {
 $(document).ready(function() {
     let canvas = initCanvas();
     let context = canvas.getContext('2d');
-    //let debug = document.getElementById('debug');
     
     let envir = new Environment();
     envir.init1();
 
-    tick();
+    loop();
 
-    function tick() {
+    function loop() {
         context.clearRect(0, 0, canvas.width, canvas.height);
         
         let deltaTime = systemTime.getDeltaTime();
@@ -551,8 +730,8 @@ $(document).ready(function() {
 
         envir.update(deltaTime);
         envir.render(context);
-        
-        requestAnimationFrame(tick);
+
+        requestAnimationFrame(loop);
     }
 })
 
@@ -571,5 +750,5 @@ function initCanvas() {
 
 // HELPFUL SNIPPETS ----------------------------------------------------------------------
 
-// Calls the "super" (gameObject) method from Player
-// gameObject.prototype.behave.call(this);
+// Calls the "super" (GameObject) method from Player
+// GameObject.prototype.behave.call(this);
