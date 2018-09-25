@@ -14,10 +14,7 @@ function getSign(value) {
 
 // Rounds vector components to a decimal
 function vectorRound(vec, decimal) {
-    let result = new Vector(0,0);
-    result.setX( round( vec.getX(), decimal ) );
-    result.setY( round( vec.getY(), decimal ) );
-    return result;
+    return new Vector( round( vec.x, decimal ), round( vec.y, decimal ) );
 }
 
 // Returns a new vector that is 'vec1 + vec2'
@@ -35,10 +32,7 @@ function vectorDiff(vec1, vec2) {
 
 // Returns a new vector that is 'vec * scalar'
 function vectorMult(vec, scalar) {
-    let result = new Vector(0,0);
-    result.setX( vec.getX() * scalar );
-    result.setY( vec.getY() * scalar );
-    return result;
+    return new Vector( vec.x * scalar, vec.y * scalar );
 }
 
 function vectorDiv(vec, scalar) {
@@ -47,7 +41,19 @@ function vectorDiv(vec, scalar) {
 
 // Returns the two dimensional cross product of given vectors
 function vectorCross (vec1, vec2) {
-    return vec1.getX() * vec2.getY() - vec1.getY() * vec2.getX();
+    return vec1.x * vec2.y - vec1.y * vec2.x;
+}
+
+// Returns a Vector with x and y components calculated from magnitude and direction.
+// Direction is given in degrees
+function vectorToXY(magnitude, direction) {
+    let x = Math.cos(toRadians(direction)) * magnitude;
+    let y = Math.sin(toRadians(-direction)) * magnitude;
+    return ( new Vector(x, y) );
+}
+
+function toRadians(degrees) {
+    return degrees * (Math.PI / 180);
 }
 
 // Given two ranges, returns true if ranges overlap
@@ -59,35 +65,30 @@ function rangeOverlap(min1, max1, min2, max2) {
 
 // Returns true if segments overlap in the x-direction
 function segOverlapX(seg1, seg2) {
-    return( rangeOverlap( seg1.getPos1().getX(), seg1.getPos2().getX(), seg2.getPos1().getX(), seg2.getPos2().getX() ) );
+    return( rangeOverlap( seg1.pos1.x, seg1.pos2.x, seg2.pos1.x, seg2.pos2.x ) );
 }
 
 // Returns true if segments overlap in the y-direction
 function segOverlapY(seg1, seg2) {
-    return( rangeOverlap( seg1.getPos1().getY(), seg1.getPos2().getY(), seg2.getPos1().getY(), seg2.getPos2().getY() ) );
+    return( rangeOverlap( seg1.pos1.y, seg1.pos2.y, seg2.pos1.y, seg2.pos2.y ) );
 }
 
 // Returns point of intersection if two segments intersect, and false if they don't
 function segSegIntersect(seg1, seg2) {
-    let p1 = seg1.getPos1(),
-        p2 = seg2.getPos1(),
-        v1 = seg1.getVector(),
-        v2 = seg2.getVector(),
-
-        a = vectorDiff(p2, p1),
-        b = vectorCross(v1, v2),
-        num = vectorCross(a, v1);
+    let a = vectorDiff(seg2.pos1, seg1.pos1),
+        b = vectorCross(seg1.vector, seg2.vector),
+        num = vectorCross(a, seg1.vector);
         
     if (b == 0 && num == 0) {
         return false; // parallel and intersecting
     } else {
-        t = vectorCross(a, vectorDiv(v2, b)), // a x v2 / b
-        u = vectorCross(a, vectorDiv(v1, b)); // a x v1 / b
+        t = vectorCross(a, vectorDiv(seg2.vector, b)), // a x v2 / b
+        u = vectorCross(a, vectorDiv(seg1.vector, b)); // a x v1 / b
 
         if( 0 <= t && t <= 1 && 0 <= u && u <= 1 ) {
             let intersection = new Vector(0,0);
-            intersection.add( p1 );
-            intersection.add( vectorMult(v1, t) );
+            intersection.add( seg1.pos1 );
+            intersection.add( vectorMult(seg1.vector, t) );
             return intersection; // not parallel and intersecting
         }
     }
@@ -99,8 +100,8 @@ function segSegIntersect(seg1, seg2) {
 }
 
 function recSegIntersect(rec, seg) {
-    let top = rec.getSegmentTop();
-    let side = rec.getSegmentRight();
+    let top = rec.segTop;
+    let side = rec.segRight;
     if( segOverlapX(top, seg) && segOverlapY(side, seg) ) {
         return true;
     }
@@ -108,10 +109,10 @@ function recSegIntersect(rec, seg) {
 }
 
 function recRecIntersect(rec1, rec2) {
-    let top1 = rec1.getSegmentTop();
-    let side1 = rec1.getSegmentRight();
-    let top2 = rec2.getSegmentTop();
-    let side2 = rec2.getSegmentRight();
+    let top1 = rec1.segTop;
+    let side1 = rec1.segRight;
+    let top2 = rec2.segTop;
+    let side2 = rec2.segRight;
 
     if( segOverlapX(top1, top2) && segOverlapY(side1, side2) ) {
         return true;
@@ -120,11 +121,11 @@ function recRecIntersect(rec1, rec2) {
 }
 
 function drawRect(context, gameObject) {
-    context.fillStyle = gameObject.getColor();
-    context.fillRect(gameObject.getPos().getX(), 
-                     gameObject.getPos().getY(), 
-                     gameObject.getDim().getX(), 
-                     gameObject.getDim().getY());
+    context.fillStyle = gameObject.color;
+    context.fillRect(gameObject.pos.x, 
+                     gameObject.pos.y, 
+                     gameObject.dim.x, 
+                     gameObject.dim.y);
 }
 
 function drawLine(context, Vector) {

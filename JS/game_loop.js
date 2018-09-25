@@ -84,8 +84,11 @@ $(document).ready(function() {
         // let res1 = segSegIntersect(seg1, seg2);
         // let res2 = segSegIntersect(seg3, seg4);
         
+        // if(res1) {
+        //     console.log(res1);
+        // }
         // if (res2) {
-        //     console.log(res2.print());
+        //     console.log(res2);
         // }
     }
 })

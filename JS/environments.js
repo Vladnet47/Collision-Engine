@@ -38,23 +38,23 @@ Environment.prototype.behave = function(deltaTime) {
         let changes = new ChangesPosVel();
 
         // CALCULATE CHANGE IN VELOCITY DUE TO GLOBAL EFFECTS
-        if(this.globalEffects.gravity.on && gameObject.getVel().getY() <= this.globalEffects.gravity.terminalVelocity) {
+        if(this.globalEffects.gravity.on && gameObject.vel.y <= this.globalEffects.gravity.terminalVelocity) {
             if(gameObject instanceof Player) {
-                changes.addVelDel( convertToXY(this.globalEffects.gravity.acceleration, -90) );
+                changes.addVelDel( vectorToXY(this.globalEffects.gravity.acceleration, -90) );
             }
         }
 
-        // if(this.globalEffects.friction.on && GameObject.getCollision().ground) {
-        //     let vel = gameObject.getVel().getX();
+        // if(this.globalEffects.friction.on && GameObject.colType.ground) {
+        //     let vel = gameObject.vel.x;
         //     let accel = this.globalEffects.gravity.acceleration * this.globalEffects.friction.coef; //
         //     let change = new Vector(0,0);
 
         //     if( vel > accel*deltaTime ) {
-        //         change = convertToXY(accel, 180);
+        //         change = vectorToXY(accel, 180);
         //     } else if ( vel < -accel*deltaTime ) {
-        //         change = convertToXY(accel, 0);
+        //         change = vectorToXY(accel, 0);
         //     } else {
-        //         change = convertToXY(-vel, 0);
+        //         change = vectorToXY(-vel, 0);
         //     }
 
         //     changeInVelocity.add(change);
@@ -66,7 +66,7 @@ Environment.prototype.behave = function(deltaTime) {
         // UPDATE POSITION AND VELOCITY
 
         this.updateVel(gameObject, changes, deltaTime);
-        changes.setPosDel( vectorMult(gameObject.getVel(), deltaTime) );
+        changes.posDel = vectorMult(gameObject.vel, deltaTime);
         this.updatePos(gameObject, changes, deltaTime);
     }
 }
@@ -81,11 +81,11 @@ Environment.prototype.collide = function(deltaTime) {
         // CALCULATE CHANGE IN VELOCITY/POSITION DUE TO COLLISION
         // Bottom line
         maxHeight = 600;
-        if ( gameObject.isCollidable() && this.collisionLowerBound(gameObject, maxHeight) ) {
+        if ( gameObject.collidable && this.collisionLowerBound(gameObject, maxHeight) ) {
             gameObject.setCollision("ground", true);
             changes.add( this.collisionLowerBoundCalc( gameObject, maxHeight ));
         } else {
-            gameObject.setCollision("ground", false);
+            gameObject.setCollision ("ground", false);
         }
 
         // Uniform Grid
@@ -101,7 +101,7 @@ Environment.prototype.collide = function(deltaTime) {
                 } 
 
                 let other = this.gameObjects[indexCols];
-                if ( gameObject.isCollidable() && recRecIntersect( gameObject.getRec(), other.getRec() ) ) {
+                if ( gameObject.collidable && recRecIntersect( gameObject.rec, other.rec ) ) {
                     changes.add( this.collisionRecSegCalc( gameObject, other ) );
                 }
             }
@@ -131,14 +131,14 @@ Environment.prototype.collide = function(deltaTime) {
 }
 
 Environment.prototype.updateVel = function(gameObject, changes, deltaTime) {
-    changes.setVelDel( vectorMult(changes.getVelDel(), deltaTime) );
-    gameObject.addVel( changes.getVelDel() );
-    gameObject.addVel( changes.getVelIns() );
+    changes.velDel = vectorMult(changes.velDel, deltaTime);
+    gameObject.addVel( changes.velDel );
+    gameObject.addVel( changes.velIns );
 }
 
 Environment.prototype.updatePos = function(gameObject, changes, deltaTime) {
-    gameObject.addPos( changes.getPosDel() );
-    gameObject.addPos( changes.getPosIns() );
+    gameObject.addPos( changes.posDel );
+    gameObject.addPos( changes.posIns );
 }
 
 // Draws each GameObject in the environment
@@ -177,18 +177,18 @@ Environment.prototype.uniformGrid = function() {
 
 // Imaginary line
 Environment.prototype.collisionLowerBound = function(gameObject, maxHeight) {
-    return ( gameObject.getPos().getY() + gameObject.getDim().getY() >= maxHeight );
+    return ( gameObject.pos.y + gameObject.dim.y >= maxHeight );
 }
 
 // Returns an object containing the changes in position and velocity of the GameObject after collision
 // Return in the form { position: Vector, velocity: Vector } 
 Environment.prototype.collisionLowerBoundCalc = function(gameObject, maxHeight) {
     let changes = new ChangesPosVel();
-    let objectPosition = gameObject.getPos().getY();
-    let objectHeight = gameObject.getDim().getY();
+    let objectPosition = gameObject.pos.y;
+    let objectHeight = gameObject.dim.y;
 
-    changes.addPosIns( convertToXY( objectPosition + objectHeight - maxHeight, 90) );
-    changes.addVelIns( convertToXY( gameObject.getVel().getY(), 90 ) );
+    changes.addPosIns( vectorToXY( objectPosition + objectHeight - maxHeight, 90) );
+    changes.addVelIns( vectorToXY( gameObject.vel.y, 90 ) );
     
     return changes;
 }
@@ -200,31 +200,31 @@ Environment.prototype.collisionRecSegCalc = function(gameObject, other) {
     let segmentCalc = this.collisionSegCalc(gameObject, other);
 
     if ( segmentCalc.type == "vertical" ) {
-        let g1 = gameObject.getPos().getX();
-        let g2 = g1 + gameObject.getDim().getX();
-        let o1 = other.getPos().getX();
-        let o2 = o1 + other.getDim().getX();
+        let g1 = gameObject.pos.x;
+        let g2 = g1 + gameObject.dim.x;
+        let o1 = other.pos.x;
+        let o2 = o1 + other.dim.x;
 
         let overlapLeft = (g2 < o2) ? Math.min(o1 - g2, 0) : 0;
         let overlapRight = (g1 < o1) ? 0 : Math.max(o2 - g1, 0);
 
         let pos = (overlapLeft != 0) ? overlapLeft : overlapRight;
 
-        changes.addPosIns( convertToXY( pos, 0 ) );
-        changes.addVelIns( convertToXY( -gameObject.getVel().getX(), 0 ) );
+        changes.addPosIns( vectorToXY( pos, 0 ) );
+        changes.addVelIns( vectorToXY( -gameObject.vel.x, 0 ) );
     } else if ( segmentCalc.type == "horizontal" ) {
-        let g1 = gameObject.getPos().getY();
-        let g2 = g1 + gameObject.getDim().getY();
-        let o1 = other.getPos().getY();
-        let o2 = o1 + other.getDim().getY();
+        let g1 = gameObject.pos.y;
+        let g2 = g1 + gameObject.dim.y;
+        let o1 = other.pos.y;
+        let o2 = o1 + other.dim.y;
 
         let overlapLeft = (g2 < o2) ? Math.min(o1 - g2, 0) : 0;
         let overlapRight = (g1 < o1) ? 0 : Math.max(o2 - g1, 0);
 
         let pos = (overlapLeft != 0) ? overlapLeft : overlapRight;
 
-        changes.addPosIns( convertToXY( pos, -90 ) );
-        changes.addVelIns( convertToXY( -gameObject.getVel().getY(), -90 ) );
+        changes.addPosIns( vectorToXY( pos, -90 ) );
+        changes.addVelIns( vectorToXY( -gameObject.vel.y, -90 ) );
     } else if ( segmentCalc.type == "error" ) {
         throw Error( gameObject.constructor.name + " did not intersect with any segments of " + other.constructor.name + " [collisionRecCalc]");
     }
@@ -234,21 +234,21 @@ Environment.prototype.collisionRecSegCalc = function(gameObject, other) {
 
 // Return { type of segment, segment } the gameObject collided with
 Environment.prototype.collisionSegCalc = function(gameObject, other) {
-    let top = other.getRec().getSegmentTop();
-    let right = other.getRec().getSegmentRight();
-    let left = other.getRec().getSegmentLeft();
-    let bottom = other.getRec().getSegmentBottom();
+    let top = other.rec.segTop;
+    let right = other.rec.segRight;
+    let left = other.rec.segLeft;
+    let bottom = other.rec.segBot;
 
-    if ( recSegIntersect(gameObject.getRec(), right) ) {
+    if ( recSegIntersect(gameObject.rec, right) ) {
         return { type: "vertical", segment: right };
     }
-    if ( recSegIntersect(gameObject.getRec(), left) ) {
+    if ( recSegIntersect(gameObject.rec, left) ) {
         return { type: "vertical", segment: left };
     }
-    if ( recSegIntersect(gameObject.getRec(), top) ) {
+    if ( recSegIntersect(gameObject.rec, top) ) {
         return { type: "horizontal", segment: top };
     } 
-    if ( recSegIntersect(gameObject.getRec(), bottom) ) {
+    if ( recSegIntersect(gameObject.rec, bottom) ) {
         return { type: "horizontal", segment: bottom };
     }
     return { type: "error", segment: bottom };
@@ -263,7 +263,7 @@ Environment.prototype.collisionSegSegCalc = function(gameObject, other) {
 
 Environment.prototype.getFirstCollidedVertex = function(gameObject, other) {
     let seg1 = new Segment(new Vector(0,0), new Vector(0,0));
-    seg1.constructFromVector(gameObject.getPos(), gameObject.getVel());
+    seg1.constructFromVector(gameObject.pos, gameObject.vel);
 }
 
 
@@ -285,8 +285,8 @@ Environment.prototype.init1 = function() {
                                   'rgb(255, 153, 102)', 
                                   new Vector(0,0), 
                                   100 );
-    platform1.setCollidable(true);
-    player.setCollidable(true);
+    platform1.collidable = true;
+    player.collidable = true;
 
     this.gameObjects.push(platform1);
     this.gameObjects.push(player);
@@ -295,17 +295,17 @@ Environment.prototype.init1 = function() {
 // DEBUG ---------------------------------------------------------------------------------------------------------
 // Checks if GameObject is undergoing a collision
 Environment.prototype.checkCollision = function(gameObject) {
-    return ("Collision with ground is [" + gameObject.properties.collision.ground + "]");
+    return ("Collision with ground is [" + gameObject.colType.ground + "]");
 }
 
 Environment.prototype.printYStats = function(gameObject) {
     return ("[" + round(this.elapsedTime, 1) + 
-            "] Y: position is [" + gameObject.getPos().getY() + 
-            "] and velocity is [" + gameObject.getVel().getY() + "]");
+            "] Y: position is [" + gameObject.pos.y + 
+            "] and velocity is [" + gameObject.vel.y + "]");
 }
 
 Environment.prototype.printXStats = function(gameObject) {
     return ("[" + round(this.elapsedTime, 1) + 
-            "] X: position is [" + gameObject.getPos().getX() + 
-            "] and velocity is [" + gameObject.getVel().getX() + "]");
+            "] X: position is [" + gameObject.pos.x + 
+            "] and velocity is [" + gameObject.vel.x + "]");
 }
