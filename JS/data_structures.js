@@ -14,6 +14,10 @@ class Vector {
     get magnitude() {
         return Math.sqrt( Math.pow( this.x, 2 ) + Math.pow( this.y, 2 ) );
     }
+    // returns counter clockwise from the x-axis
+    get angle() {
+        return Math.atan(this._y / this._x) * -180 / Math.PI;
+    }
 
     add(other) {
         this._x += other.x;
@@ -44,12 +48,6 @@ class Segment {
     }
     get magnitude() {
         return this.vector.magnitude;
-    }
-
-    // Constructs line segment over a Vector, given a position Vector
-    constructFromVector(pos, vec) {
-        this._position1 = pos;
-        this._position2 = new Vector(pos.x + vec.x, pos.y + vec.y);
     }
 
     toString() {

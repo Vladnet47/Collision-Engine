@@ -12,6 +12,11 @@ function getSign(value) {
     return sign;
 }
 
+// Returns the distance between two points, given as vectors
+function distance(point1, point2) {
+    return Math.sqrt( Math.pow( point2.x-point1.x, 2 ) + Math.pow( point2.y-point1.y, 2 ) );
+}
+
 // Rounds vector components to a decimal
 function vectorRound(vec, decimal) {
     return new Vector( round( vec.x, decimal ), round( vec.y, decimal ) );

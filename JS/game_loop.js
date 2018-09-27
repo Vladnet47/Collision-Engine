@@ -72,23 +72,16 @@ $(document).ready(function() {
             requestAnimationFrame(loop);
         }
 
-        // let seg1 = new Segment(new Vector(0,0), new Vector(1,0));
-        // let seg2 = new Segment(new Vector(1,0), new Vector(2,0));
+        // let seg = [ new Segment(new Vector(50,50), new Vector(55,60)),
+        //             new Segment(new Vector(60,60), new Vector(40,50))
+        //              ]
 
-        // let seg3 = new Segment(new Vector(0,0), new Vector(2,0));
-        // let seg4 = new Segment(new Vector(1,0), new Vector(5,9));
-
-        // let seg5 = new Segment(new Vector(0,0), new Vector(2,2));
-        // let seg6 = new Segment(new Vector(0,1), new Vector(1,2));
-        
-        // let res1 = segSegIntersect(seg1, seg2);
-        // let res2 = segSegIntersect(seg3, seg4);
-        
-        // if(res1) {
-        //     console.log(res1);
-        // }
-        // if (res2) {
-        //     console.log(res2);
+        // for(let index = 0; index < seg.length; ++index) {
+        //     let seg1 = seg[index];
+        //     for(let index2 = 0; index2 < seg.length; ++index2) {
+        //         let seg2 = seg[index2];
+        //         console.log(seg1 + ", " + seg2 + ": intersection is " + segSegIntersect(seg1, seg2));
+        //     }
         // }
     }
 })

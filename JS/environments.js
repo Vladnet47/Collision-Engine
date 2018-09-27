@@ -64,6 +64,8 @@ class Environment {
             this.updateVel(gameObject, changes, deltaTime);
             changes.posDel = vectorMult(gameObject.vel, deltaTime);
             this.updatePos(gameObject, changes);
+
+            
         }
     }
 
@@ -95,15 +97,24 @@ class Environment {
                         continue;
                     }
                     let other = this._gameObjects[indexCols];
-                    if (gameObject.collidable && recRecIntersect(gameObject.rec, other.rec)) {
-                        changes.add(this.collisionRecSegCalc(gameObject, other));
+                    
+                    // Tier 3
+                    if ( gameObject.collidable && this.potentialSegSegIntersect(gameObject, other, deltaTime) ) {
+                        changes.add( this.collisionMovingSegCalc(gameObject, other, deltaTime) );
                     }
+                
+                    // Tier 2
+                    // if (gameObject.collidable && recRecIntersect(gameObject.rec, other.rec)) {
+                    //     changes.add(this.collisionRecSegCalc(gameObject, other));
+                    // }
                 }
             }
 
             // UPDATE POSITION AND VELOCITY
             this.updateVel(gameObject, changes, deltaTime);
             this.updatePos(gameObject, changes);
+
+           
             
             //DEBUG
             // Timer
@@ -117,7 +128,7 @@ class Environment {
             // }
             // Available functions
             // console.log(this.checkCollision(GameObject));
-            // console.log(this.printXStats(GameObject));
+            
             // console.log(this.printYStats(GameObject));
         }
     }
@@ -181,7 +192,7 @@ class Environment {
     // Handles moving gameObject and stationary other
     collisionRecSegCalc(gameObject, other) {
         let changes = new ChangesPosVel(),
-            type = this.segmentType(gameObject, other);
+            type = this.segmentTypeI(gameObject, other);
 
         if (type == "vertical") {
             let offset = this.offsetCalc( gameObject.pos.x, gameObject.dim.x, other.pos.x, other.rec.tRight.x );
@@ -194,9 +205,9 @@ class Environment {
         }
         return changes;
     }
-    
+
     // Return the type of segment the gameObject collided with
-    segmentType(gameObject, other) {
+    segmentTypeI(gameObject, other) {
         if ( recSegIntersect(gameObject.rec, other.rec.segRight) || recSegIntersect(gameObject.rec, other.rec.segLeft) ) {
             return "vertical";
         } else if ( recSegIntersect(gameObject.rec, other.rec.segTop) || recSegIntersect(gameObject.rec, other.rec.segBot) ) {
@@ -216,13 +227,104 @@ class Environment {
 
     // Tier 3 Collision Engine
     // Handles moving gameObject and stationary other, using previous position segment intersection
-    collisionSegSegCalc(gameObject, other) {
-        let changes = new ChangesPosVel();
-        let result = this.collisionSegCalc(gameObject, other);
+    potentialSegSegIntersect(gameObject, other, deltaTime) {
+        let vel = vectorMult(gameObject.vel, -deltaTime);
+        let pos = [ gameObject.pos, gameObject.rec.tRight, gameObject.rec.bRight, gameObject.rec.bLeft ],
+            segGam = [ this.consVelSegment(pos[0], vel), this.consVelSegment(pos[1], vel),
+                       this.consVelSegment(pos[2], vel), this.consVelSegment(pos[3], vel) ],
+            segOth = [ other.rec.segTop, other.rec.segRight, other.rec.segBot, other.rec.segLeft ];
+
+        for (let index1 = 0; index1 < 4; ++index1) {
+            let segGamCurrent = segGam[index1];
+
+            for (let index2 = 0; index2 < 4; ++index2) {
+                let segOthCurrent = segOth[index2];
+                if ( segOverlapX( segGamCurrent, segOthCurrent ) && segOverlapY( segGamCurrent, segOthCurrent ) ) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
-    getFirstCollidedVertex(gameObject, other) {
-        let seg1 = new Segment(new Vector(0, 0), new Vector(0, 0));
-        seg1.constructFromVector(gameObject.pos, gameObject.vel);
+
+    collisionMovingSegCalc(gameObject, other, deltaTime) {
+        let changes = new ChangesPosVel(),
+            type = this.segmentTypeII(gameObject, other, deltaTime);
+
+        if (type == "top") {
+            gameObject.setCollision("ground", true);
+            let offset = other.rec.segTop.pos1.y - gameObject.rec.bLeft.y;
+            let curVel = gameObject.vel.y;
+
+            changes.addPosIns(vectorToXY(offset, -90));
+            if(curVel > 0) {
+                changes.addVelIns(vectorToXY(-curVel, -90));
+            }
+        } else if (type == "right") {
+            let offset = other.rec.segRight.pos1.x - gameObject.rec.tLeft.x;
+            let curVel = gameObject.vel.x;
+
+            changes.addPosIns(vectorToXY(offset, 0));
+            if(curVel < 0) {
+                changes.addVelIns(vectorToXY(-curVel, 0));
+            }
+        } else if (type == "bottom") {
+            let offset = other.rec.segBot.pos1.y - gameObject.rec.tLeft.y;
+            let curVel = gameObject.vel.y;
+
+            changes.addPosIns(vectorToXY(offset, -90));
+            if(curVel < 0) {
+                changes.addVelIns(vectorToXY(-curVel, -90));
+            }
+        } else if (type == "left") {
+            let offset = other.rec.segLeft.pos1.x - gameObject.rec.tRight.x;
+            let curVel = gameObject.vel.x;
+
+            changes.addPosIns(vectorToXY(offset, 0));
+            if(curVel > 0) {
+                changes.addVelIns(vectorToXY(-curVel, 0));
+            }
+        }
+        return changes;
+    }
+
+    segmentTypeII(gameObject, other, deltaTime) {
+        let vel = vectorMult(gameObject.vel, -deltaTime);
+        let pos = [ gameObject.pos, gameObject.rec.tRight, gameObject.rec.bRight, gameObject.rec.bLeft ],
+            segGam = [ this.consVelSegment(pos[0], vel), this.consVelSegment(pos[1], vel),
+                       this.consVelSegment(pos[2], vel), this.consVelSegment(pos[3], vel) ],
+            segOth = [ other.rec.segTop, other.rec.segRight, other.rec.segBot, other.rec.segLeft ],
+            type = ["top", "right", "bottom", "left"];
+
+        let maxMagnitude = 0;
+        let colType = "none";
+
+        for (let index1 = 0; index1 < 4; ++index1) {
+            let segGamCurrent = segGam[index1];
+
+            for (let index2 = 0; index2 < 4; ++index2) {
+                let segOthCurrent = segOth[index2];
+                let intersection = segSegIntersect(segGamCurrent, segOthCurrent);
+
+                if(intersection) {
+                    let posCurrent = pos[index1];
+                    let vec = new Vector( intersection.x - posCurrent.x, intersection.y - posCurrent.y );
+                    let curMag = vec.magnitude;
+
+                    if( curMag > maxMagnitude ) {
+                        colType = type[index2];
+                        maxMagnitude = curMag;
+                    }
+                }
+            }
+        }
+        
+        return colType;
+    }
+    
+    // Constructs line segment over the velocity vector, given a position vector
+    consVelSegment(pos, vel) {
+        return new Segment( pos, new Vector(pos.x + vel.x, pos.y + vel.y) );
     }
 
     // INITIALIZATION ------------------------------------------------------------------------------------------------
@@ -231,7 +333,7 @@ class Environment {
         this._globalEffects.gravity.on = true;
         //this._globalEffects.friction.on = true;
         this._collisionProps.onUniformGrid = false;
-        let player = new Player(new Rectangle(new Vector(500, 300), new Vector(40, 40)), 'rgb(0, 153, 255)', new Vector(0, 0), 100);
+        let player = new Player(new Rectangle(new Vector(600, 300), new Vector(40, 40)), 'rgb(0, 153, 255)', new Vector(0, 0), 100);
         let platform1 = new Platform(new Rectangle(new Vector(200, 200), new Vector(300, 300)), 'rgb(255, 153, 102)', new Vector(0, 0), 100);
         platform1.collidable = true;
         player.collidable = true;
