@@ -76,7 +76,7 @@ class Environment {
             let gameObject = this._gameObjects[index];
             let changes = new ChangesPosVel();
 
-            // CALCULATE CHANGE IN VELOCITY/POSITION DUE TO COLLISION
+            // CALCULATE CHANGE IN VELOCITY/POSITION DUE TO NARROW COLLISION
             for (let indexCol = 0; indexCol < this._narrowColEngines.length; ++indexCol) {
                 let curEngine = this._narrowColEngines[indexCol];
                 
@@ -84,7 +84,7 @@ class Environment {
                     if (indexOth == index) {
                         continue;
                     }
-                    
+
                     let other = this._gameObjects[indexOth];
 
                     if( gameObject.collidable && curEngine.potentialCollision(gameObject, other, deltaTime) ) {
@@ -97,7 +97,9 @@ class Environment {
             this.updateVel(gameObject, changes, deltaTime);
             this.updatePos(gameObject, changes);
 
-           
+            if(gameObject instanceof Player) {
+                console.log(this.printYStats(gameObject));
+            }
             
             //DEBUG
             // Timer
@@ -181,13 +183,13 @@ class Environment {
     }
     printYStats(gameObject) {
         return ("[" + round(this.elapsedTime, 1) +
-            "] Y: position is [" + gameObject.pos.y +
-            "] and velocity is [" + gameObject.vel.y + "]");
+            "] Y: position is [" + round(gameObject.pos.y, 2) +
+            "] and velocity is [" + round(gameObject.vel.y, 2) + "]");
     }
     printXStats(gameObject) {
         return ("[" + round(this.elapsedTime, 1) +
-            "] X: position is [" + gameObject.pos.x +
-            "] and velocity is [" + gameObject.vel.x + "]");
+            "] X: position is [" + round(gameObject.pos.x, 2) +
+            "] and velocity is [" + round(gameObject.vel.x, 2) + "]");
     }
 }
 

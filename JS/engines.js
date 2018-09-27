@@ -110,7 +110,7 @@ class TierIII extends NarrowCollisionEngine {
 
         if (type == "top") {
             gameObject.setCollision("ground", true);
-            let offset = other.rec.segTop.pos1.y - gameObject.rec.bLeft.y;
+            let offset = other.rec.segTop.pos1.y - gameObject.rec.bLeft.y - 0.1;
             let curVel = gameObject.vel.y;
 
             changes.addPosIns(vectorToXY(offset, -90));
@@ -118,7 +118,7 @@ class TierIII extends NarrowCollisionEngine {
                 changes.addVelIns(vectorToXY(-curVel, -90));
             }
         } else if (type == "right") {
-            let offset = other.rec.segRight.pos1.x - gameObject.rec.tLeft.x;
+            let offset = other.rec.segRight.pos1.x - gameObject.rec.tLeft.x + 0.1;
             let curVel = gameObject.vel.x;
 
             changes.addPosIns(vectorToXY(offset, 0));
@@ -126,7 +126,7 @@ class TierIII extends NarrowCollisionEngine {
                 changes.addVelIns(vectorToXY(-curVel, 0));
             }
         } else if (type == "bottom") {
-            let offset = other.rec.segBot.pos1.y - gameObject.rec.tLeft.y;
+            let offset = other.rec.segBot.pos1.y - gameObject.rec.tLeft.y + 0.1;
             let curVel = gameObject.vel.y;
 
             changes.addPosIns(vectorToXY(offset, -90));
@@ -134,7 +134,7 @@ class TierIII extends NarrowCollisionEngine {
                 changes.addVelIns(vectorToXY(-curVel, -90));
             }
         } else if (type == "left") {
-            let offset = other.rec.segLeft.pos1.x - gameObject.rec.tRight.x;
+            let offset = other.rec.segLeft.pos1.x - gameObject.rec.tRight.x - 0.1;
             let curVel = gameObject.vel.x;
 
             changes.addPosIns(vectorToXY(offset, 0));
