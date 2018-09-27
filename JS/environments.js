@@ -41,9 +41,9 @@ class Environment {
 
             // CALCULATE CHANGE IN VELOCITY DUE TO GLOBAL EFFECTS
             if (this._globalEffects.gravity.on && gameObject.vel.y <= this._globalEffects.gravity.terminalVelocity) {
-                if (gameObject instanceof Player) {
+                if(gameObject instanceof Player) {
                     changes.addVelDel( vectorToXY(this._globalEffects.gravity.acceleration, -90) );
-                }
+                } 
             }
 
             // if(this._globalEffects.friction.on && GameObject.colType.ground) {
@@ -72,7 +72,7 @@ class Environment {
 
     // Determines which objects collided and handles collisions
     collide(deltaTime) {
-        for (let index = 0; index < this._gameObjects.length; ++index) {
+        for ( let index = 0; index < this._gameObjects.length; ++index ) {
             let gameObject = this._gameObjects[index];
             let changes = new ChangesPosVel();
 
@@ -96,10 +96,6 @@ class Environment {
             // UPDATE POSITION AND VELOCITY
             this.updateVel(gameObject, changes, deltaTime);
             this.updatePos(gameObject, changes);
-
-            if(gameObject instanceof Player) {
-                console.log(this.printYStats(gameObject));
-            }
             
             //DEBUG
             // Timer
@@ -165,14 +161,16 @@ class Environment {
         //this._globalEffects.friction.on = true;
         this._collisionProps.onUniformGrid = false;
 
-        let player = new Player(new Rectangle(new Vector(600, 300), new Vector(40, 40)), 'rgb(0, 153, 255)', new Vector(0, 0), 100);
-        let platform1 = new Platform(new Rectangle(new Vector(200, 200), new Vector(300, 300)), 'rgb(255, 153, 102)', new Vector(0, 0), 100);
+        let player = new Player(new Rectangle(new Vector(500, 0), new Vector(40, 40)), 'rgb(0, 153, 255)', new Vector(0, 0), 100);
+        let platform1 = new Platform(new Rectangle(new Vector(200, 300), new Vector(200, 300)), 'rgb(230, 138, 0)', new Vector(0, 0), 100);
+        let platform2 = new Platform(new Rectangle(new Vector(0, 600), new Vector(2000, 10)), 'rgb(153, 153, 102)', new Vector(0, 0), 100);
         platform1.collidable = true;
         player.collidable = true;
+        platform2.collidable = true;
         this._gameObjects.push(platform1);
+        this._gameObjects.push(platform2);
         this._gameObjects.push(player);
 
-        this._narrowColEngines.push(new LowerBound(600));
         this._narrowColEngines.push(new TierIII());
     }
 

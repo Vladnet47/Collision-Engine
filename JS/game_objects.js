@@ -4,7 +4,7 @@ class Player extends GameObject{
     constructor(Rectangle, color, velocity, mass) {
         super(Rectangle, color, velocity, mass);
         this.traits = {
-            move: { maxSpeed: 200, accel: 200 },
+            move: { maxSpeed: 200, accel: 1000 },
             jump: { speed: 400, maxJumps: 100, curJump: 0, letGo: false }
         };
     }

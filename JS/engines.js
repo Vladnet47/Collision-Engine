@@ -87,6 +87,9 @@ class TierIII extends NarrowCollisionEngine {
     }
 
     potentialCollision(gameObject, other, deltaTime) {
+        if(!(gameObject instanceof Player)) {
+            return false;
+        }
         this._pos = this.getPosVectors(gameObject);
         this._segGam = this.getVelSegments(gameObject, deltaTime);
         this._segOth = this.getRecSegments(other);
