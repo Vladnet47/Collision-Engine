@@ -51,7 +51,7 @@ class Segment {
     }
 
     toString() {
-        return "Endpoints of segment are " + this._position1 + " and " + this._position2;
+        return "Endpoints of segment are " + this._position1.toString() + " and " + this._position2.toString();
     }
 }
 

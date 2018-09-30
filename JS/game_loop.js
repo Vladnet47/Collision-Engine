@@ -72,17 +72,28 @@ $(document).ready(function() {
             requestAnimationFrame(loop);
         }
 
-        // let seg = [ new Segment(new Vector(50,50), new Vector(55,60)),
-        //             new Segment(new Vector(60,60), new Vector(40,50))
+        // let seg = [ new Segment(new Vector(50,50), new Vector(50,60)),
+        //             new Segment( new Vector(50,50), new Vector(0, 10) ),
+        //             new Segment(new Vector(10,10), new Vector(30,30)),
+        //             new Segment(new Vector(100,10), new Vector(100,50))
         //              ]
+
 
         // for(let index = 0; index < seg.length; ++index) {
         //     let seg1 = seg[index];
+        //     console.log(seg1.toString())
+        //     console.log(consVelSegment(seg1.pos1, seg1.vector).toString());
+
         //     for(let index2 = 0; index2 < seg.length; ++index2) {
         //         let seg2 = seg[index2];
-        //         console.log(seg1 + ", " + seg2 + ": intersection is " + segSegIntersect(seg1, seg2));
+        //         // console.log(seg1 + ", " + seg2 + ": potential intersection is " + segSegInRange(seg1, seg2));
+        //         // console.log(seg1 + ", " + seg2 + ": intersection is " + segSegIntersect(seg1, seg2));
         //     }
         // }
+    }
+
+    function consVelSegment(pos, vel) {
+        return new Segment( pos, new Vector(pos.x + vel.x, pos.y + vel.y) );
     }
 })
 

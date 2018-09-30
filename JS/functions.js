@@ -68,14 +68,11 @@ function rangeOverlap(min1, max1, min2, max2) {
     return( Math.min(min1, max1) <= Math.max(min2, max2) && Math.max(min1, max1) >= Math.min(min2, max2) );
 }
 
-// Returns true if segments overlap in the x-direction
-function segOverlapX(seg1, seg2) {
-    return( rangeOverlap( seg1.pos1.x, seg1.pos2.x, seg2.pos1.x, seg2.pos2.x ) );
-}
+// Returns true if segments fall within eachother's x-range and y-range
+// Note: this does not necesarily mean they intersect
+function segSegInRange(seg1, seg2) {
+    return rangeOverlap( seg1.pos1.y, seg1.pos2.y, seg2.pos1.y, seg2.pos2.y ) && rangeOverlap( seg1.pos1.x, seg1.pos2.x, seg2.pos1.x, seg2.pos2.x );
 
-// Returns true if segments overlap in the y-direction
-function segOverlapY(seg1, seg2) {
-    return( rangeOverlap( seg1.pos1.y, seg1.pos2.y, seg2.pos1.y, seg2.pos2.y ) );
 }
 
 // Returns point of intersection if two segments intersect, and false if they don't

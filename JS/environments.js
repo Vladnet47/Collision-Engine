@@ -46,20 +46,6 @@ class Environment {
                 } 
             }
 
-            // if(this._globalEffects.friction.on && GameObject.colType.ground) {
-            //     let vel = gameObject.vel.x;
-            //     let accel = this._globalEffects.gravity.acceleration * this._globalEffects.friction.coef; //
-            //     let change = new Vector(0,0);
-            //     if( vel > accel*deltaTime ) {
-            //         change = vectorToXY(accel, 180);
-            //     } else if ( vel < -accel*deltaTime ) {
-            //         change = vectorToXY(accel, 0);
-            //     } else {
-            //         change = vectorToXY(-vel, 0);
-            //     }
-            //     changeInVelocity.add(change);
-            // }
-
             // CALCULATE CHANGE IN VELOCITY DUE TO INDIVIDUAL MOVEMENT
             changes.add(gameObject.behave());
 
@@ -87,8 +73,11 @@ class Environment {
 
                     let other = this._gameObjects[indexOth];
 
-                    if( gameObject.collidable && curEngine.potentialCollision(gameObject, other, deltaTime) ) {
+                    if( gameObject instanceof Player) {
+                    if( gameObject.collidable && other.collidable && curEngine.potentialCollision(gameObject, other, deltaTime) ) {
+                        //console.log("potential collision");
                         changes.add( curEngine.update(gameObject, other, deltaTime) );
+                    }
                     }
                 }
             }
@@ -158,17 +147,20 @@ class Environment {
     // Standard 2D platformer
     init1() {
         this._globalEffects.gravity.on = true;
-        //this._globalEffects.friction.on = true;
         this._collisionProps.onUniformGrid = false;
 
-        let player = new Player(new Rectangle(new Vector(500, 0), new Vector(40, 40)), 'rgb(0, 153, 255)', new Vector(0, 0), 100);
+        let player = new Player(new Rectangle(new Vector(430, 0), new Vector(40, 40)), 'rgb(0, 153, 255)', new Vector(0, 0), 100);
         let platform1 = new Platform(new Rectangle(new Vector(200, 300), new Vector(200, 300)), 'rgb(230, 138, 0)', new Vector(0, 0), 100);
         let platform2 = new Platform(new Rectangle(new Vector(0, 600), new Vector(2000, 10)), 'rgb(153, 153, 102)', new Vector(0, 0), 100);
+        let platform3 = new Platform(new Rectangle(new Vector(500, 100), new Vector(200, 300)), 'rgb(230, 138, 0)', new Vector(0, 0), 100);
+
         platform1.collidable = true;
         player.collidable = true;
         platform2.collidable = true;
+        platform3.collidable = true;
         this._gameObjects.push(platform1);
         this._gameObjects.push(platform2);
+        this._gameObjects.push(platform3);
         this._gameObjects.push(player);
 
         this._narrowColEngines.push(new TierIII());
@@ -194,6 +186,19 @@ class Environment {
 
 
 
+            // if(this._globalEffects.friction.on && GameObject.colType.ground) {
+            //     let vel = gameObject.vel.x;
+            //     let accel = this._globalEffects.gravity.acceleration * this._globalEffects.friction.coef; //
+            //     let change = new Vector(0,0);
+            //     if( vel > accel*deltaTime ) {
+            //         change = vectorToXY(accel, 180);
+            //     } else if ( vel < -accel*deltaTime ) {
+            //         change = vectorToXY(accel, 0);
+            //     } else {
+            //         change = vectorToXY(-vel, 0);
+            //     }
+            //     changeInVelocity.add(change);
+            // }
 
 
 

@@ -84,119 +84,112 @@ class TierII extends NarrowCollisionEngine {
 class TierIII extends NarrowCollisionEngine {
     constructor() {
         super();
+        this._type = ["top", "right", "bottom", "left"];
+        this._potentialColls = [];
+        this._pos = [];
+        this._segGam = [];
+        this._segOth = [];
     }
 
     potentialCollision(gameObject, other, deltaTime) {
-        if(!(gameObject instanceof Player)) {
-            return false;
-        }
-        this._pos = this.getPosVectors(gameObject);
-        this._segGam = this.getVelSegments(gameObject, deltaTime);
-        this._segOth = this.getRecSegments(other);
+        this.init(gameObject, other, deltaTime);
 
-        for (let index1 = 0; index1 < 4; ++index1) {
-            let segGamCurrent = this._segGam[index1];
+        this._potentialColls = [];
 
-            for (let index2 = 0; index2 < 4; ++index2) {
-                let segOthCurrent = this._segOth[index2];
-                if ( segOverlapX( segGamCurrent, segOthCurrent ) && segOverlapY( segGamCurrent, segOthCurrent ) ) {
-                    return true;
+        for (let iGam = 0; iGam < this._segGam.length; ++iGam) {
+            let segGamCurrent = this._segGam[iGam];
+
+            for (let iOth = 0; iOth < this._segOth.length; ++iOth) {
+                let segOthCurrent = this._segOth[iOth];
+
+                if ( segSegInRange( segGamCurrent, segOthCurrent ) ) {
+                    this._potentialColls.push( { indexGam: iGam, indexOth: iOth } );
                 }
             }
         }
-        return false;
+
+        return this._potentialColls.length > 0;
     }
 
     update(gameObject, other) {
         let changes = new ChangesPosVel(),
-        type = this.segmentType();
+            type = this.segmentType();
 
-        if (type == "top") {
-            gameObject.setCollision("ground", true);
-            let offset = other.rec.segTop.pos1.y - gameObject.rec.bLeft.y - 0.1;
-            let curVel = gameObject.vel.y;
+        let offset = 0, curVel = 0, angle = 0, offsetAid = 0;
 
-            changes.addPosIns(vectorToXY(offset, -90));
-            if(curVel > 0) {
-                changes.addVelIns(vectorToXY(-curVel, -90));
+        if( type != "none") {
+            this.updateGameObject(gameObject, type);
+            
+            if (type == "top" || type == "bottom") {
+                offset = this.offsetCalc( gameObject.pos.y, gameObject.dim.y, other.pos.y, other.rec.bRight.y );
+                curVel = gameObject.vel.y;
+                angle = -90;
+            } if (type == "right" || type == "left") {
+                offset = this.offsetCalc( gameObject.pos.x, gameObject.dim.x, other.pos.x, other.rec.tRight.x );;
+                curVel = gameObject.vel.x;
             }
-        } else if (type == "right") {
-            let offset = other.rec.segRight.pos1.x - gameObject.rec.tLeft.x + 0.1;
-            let curVel = gameObject.vel.x;
 
-            changes.addPosIns(vectorToXY(offset, 0));
-            if(curVel < 0) {
-                changes.addVelIns(vectorToXY(-curVel, 0));
-            }
-        } else if (type == "bottom") {
-            let offset = other.rec.segBot.pos1.y - gameObject.rec.tLeft.y + 0.1;
-            let curVel = gameObject.vel.y;
-
-            changes.addPosIns(vectorToXY(offset, -90));
-            if(curVel < 0) {
-                changes.addVelIns(vectorToXY(-curVel, -90));
-            }
-        } else if (type == "left") {
-            let offset = other.rec.segLeft.pos1.x - gameObject.rec.tRight.x - 0.1;
-            let curVel = gameObject.vel.x;
-
-            changes.addPosIns(vectorToXY(offset, 0));
-            if(curVel > 0) {
-                changes.addVelIns(vectorToXY(-curVel, 0));
-            }
+            // GameObject will be (offsetAid) pixels away from other object, to prevent clipping during next environment update
+            offsetAid = getSign(offset) * 0.01;
         }
+
+        changes.addPosIns(vectorToXY(offset + offsetAid, angle));
+        changes.addVelIns(vectorToXY(-curVel, angle));
 
         return changes;
     }
 
     // Returns the type of segment the gameObject collided with
     segmentType() {
-        let type = ["top", "right", "bottom", "left"];
-        let maxMagnitude = 0;
-        let colType = "none";
+        let maxMagnitude = 0,
+            result = "none";
 
-        for (let index1 = 0; index1 < 4; ++index1) {
-            let segGamCurrent = this._segGam[index1];
+        for (let index = 0; index < this._potentialColls.length; ++index) {
+            let iGam = this._potentialColls[index].indexGam,
+                iOth = this._potentialColls[index].indexOth;
 
-            for (let index2 = 0; index2 < 4; ++index2) {
-                let segOthCurrent = this._segOth[index2];
-                let intersection = segSegIntersect(segGamCurrent, segOthCurrent);
+            let intersection = segSegIntersect( this._segGam[iGam], this._segOth[iOth] );
 
-                if(intersection) {
-                    let posCurrent = this._pos[index1];
-                    let vec = new Vector( intersection.x - posCurrent.x, intersection.y - posCurrent.y );
-                    let curMag = vec.magnitude;
+            if(intersection) {
+                let posCur = this._pos[iGam],
+                    vec = new Vector( intersection.x - posCur.x, intersection.y - posCur.y ),
+                    curMagnitude = vec.magnitude;
 
-                    if( curMag > maxMagnitude ) {
-                        colType = type[index2];
-                        maxMagnitude = curMag;
-                    }
+                if( curMagnitude > maxMagnitude ) {
+                    result = this._type[iOth];
+                    maxMagnitude = curMagnitude;
                 }
             }
         }
         
-        return colType;
-    }
-    
-    // Returns an array of the four vertices of the gameObject rectangle [top left, top right, bottom left, bottom right]
-    getPosVectors(gameObject) {
-        return [ gameObject.pos, gameObject.rec.tRight, gameObject.rec.bRight, gameObject.rec.bLeft ];
+        return result;
     }
 
-    // Returns an array of the change-in-position segments from each point [top left, top right, bottom left, bottom right]
-    getVelSegments(gameObject, deltaTime) {
-        let vel = vectorMult(gameObject.vel, -deltaTime); // change in position between this frame and last one
-        return [ this.consVelSegment(this._pos[0], vel), this.consVelSegment(this._pos[1], vel), 
-                 this.consVelSegment(this._pos[2], vel), this.consVelSegment(this._pos[3], vel) ]
+    updateGameObject(gameObject, type) {
+        if (type == "top") {
+            gameObject.setCollision("ground", true);
+        }
+    }
+
+    // Given coordinate and dimension of gameObject and left and right dimensions of other, calculates the offset required
+    // to move the gameObject out of other1-other2 range
+    offsetCalc(g, dimG, other1, other2) {
+        let a = Math.min(other1, other2),
+            b = Math.max(other1, other2);
+        return (a < g && g <= b) ? b-g : a-g-dimG;
+    }
+
+    // Creates 
+    init(gameObject, other, deltaTime) {
+        let vel = vectorMult(gameObject.vel, -deltaTime);
+        this._pos = [ gameObject.pos, gameObject.rec.tRight, gameObject.rec.bRight, gameObject.rec.bLeft ];
+        this._segGam = [ this.consVelSegment(this._pos[0], vel), this.consVelSegment(this._pos[1], vel), 
+                         this.consVelSegment(this._pos[2], vel), this.consVelSegment(this._pos[3], vel) ];
+        this._segOth = [ other.rec.segTop, other.rec.segRight, other.rec.segBot, other.rec.segLeft ];
     }
 
     // Constructs line segment from the position vector and along the velocity vector
     consVelSegment(pos, vel) {
         return new Segment( pos, new Vector(pos.x + vel.x, pos.y + vel.y) );
-    }
-
-    // Returns an array of the four segments making up the other rectangle [top, right, bottom, left]
-    getRecSegments(other) {
-        return [ other.rec.segTop, other.rec.segRight, other.rec.segBot, other.rec.segLeft ];
     }
 }
