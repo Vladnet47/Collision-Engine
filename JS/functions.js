@@ -24,10 +24,7 @@ function vectorRound(vec, decimal) {
 
 // Returns a new vector that is 'vec1 + vec2'
 function vectorSum(vec1, vec2) {
-    let result = new Vector(0,0);
-    result.add(vec1);
-    result.add(vec2);
-    return result;
+    return new Vector( vec1.x + vec2.x, vec1.y + vec2.y );
 }
 
 // Returns a new vector that is 'vec1 - vec2'

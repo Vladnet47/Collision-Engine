@@ -53,7 +53,7 @@ $(document).ready(function() {
     let context = canvas.getContext('2d');
     
     let envir = new Environment(canvas);
-    envir.init1();
+    envir.init4();
 
     loop();
 
@@ -90,10 +90,6 @@ $(document).ready(function() {
         //         // console.log(seg1 + ", " + seg2 + ": intersection is " + segSegIntersect(seg1, seg2));
         //     }
         // }
-    }
-
-    function consVelSegment(pos, vel) {
-        return new Segment( pos, new Vector(pos.x + vel.x, pos.y + vel.y) );
     }
 })
 

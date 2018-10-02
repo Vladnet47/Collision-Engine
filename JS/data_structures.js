@@ -180,8 +180,9 @@ class GameObject {
         this._velocity = velocity;
         this._mass = mass;
         this._properties = {
-            collidable: false,
-            colType: { ground: false }
+            collidable: false, // GameObject will be scanned for collisions
+            physics: false, // GameObject will not react to global events and collision physics
+            colType: { ground: false } // Used to handle GameObject-specific collisions
         };
     }
 
@@ -206,12 +207,18 @@ class GameObject {
     get collidable() {
         return this._properties.collidable;
     }
+    get physics() {
+        return this._properties.physics;
+    }
     get colType() {
         return this._properties.colType;
     }
 
     set collidable(state) {
         this._properties.collidable = state;
+    }
+    set physics(state) {
+        this._properties.physics = state;
     }
 
     setCollision(type, state) {
