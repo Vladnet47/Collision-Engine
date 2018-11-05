@@ -20,6 +20,9 @@ class Vector {
     }
 
     add(other) {
+        return new Vector(this._x + other.x, this._y + other.y);
+    }
+    addTo(other) {
         this._x += other.x;
         this._y += other.y;
     }
@@ -97,16 +100,16 @@ class ChangesPosVel {
         this.addVelDel(other.velDel);
     }
     addPosIns(change) {
-        this._position.instant.add(change);
+        this._position.instant.addTo(change);
     }
     addPosDel(change) {
-        this._position.delta.add(change);
+        this._position.delta.addTo(change);
     }
     addVelIns(change) {
-        this._velocity.instant.add(change);
+        this._velocity.instant.addTo(change);
     }
     addVelDel(change) {
-        this._velocity.delta.add(change);
+        this._velocity.delta.addTo(change);
     }
 
     toString() {
@@ -121,61 +124,29 @@ class ChangesPosVel {
 }
 
 
-// RECTANGLE --------------------------------------------------------------------------------------------- 
-class Rectangle {
-    constructor(position, dimensions) {
+class Circle {
+    constructor(position, radius) {
         this._position = position;
-        this._dimensions = dimensions;
+        this._radius = radius;
     }
 
-    get center() {
-        return new Vector( this._position.x + this._dimensions.x / 2, this._position.y + this._dimensions.y / 2 );
-    }
-    get tLeft() {
+    get pos() {
         return this._position;
     }
-    get tRight() {
-        return new Vector( this._position.x + this._dimensions.x , this._position.y );
-    }
-    get bLeft() {
-        return new Vector( this._position.x, this._position.y + this._dimensions.y );
-    }
-    get bRight() {
-        return new Vector( this._position.x + this._dimensions.x , this._position.y + this._dimensions.y );
-    }
-    get dim() {
-        return this._dimensions;
-    }
-    get segTop() {
-        return new Segment( this.tLeft, this.tRight );
-    }
-    get segRight() {
-        return new Segment( this.tRight, this.bRight );
-    }
-    get segBot() {
-        return new Segment( this.bLeft, this.bRight );
-    }
-    get segLeft() {
-        return new Segment( this.tLeft, this.bLeft );
+    get rad() {
+        return this._radius;
     }
 
-    addPos(other) {
-        this._position.add(other);
-    }
-    addDim(other) {
-        this._dimensions.add(other);
-    }
-
-    toString() {
-        return "Position: " + this.tLeft + " --- Dimensions: " + this.dim;
+    addPos(change) {
+        this._position.addTo(change);
     }
 }
 
 
 // GAMEOBJECT ---------------------------------------------------------------------------------------------
 class GameObject {
-    constructor(rectangle, color, velocity, mass) {
-        this._rectangle = rectangle;
+    constructor(circle, color, velocity, mass) {
+        this._circle = circle;
         this._color = color;
         this._velocity = velocity;
         this._mass = mass;
@@ -186,14 +157,14 @@ class GameObject {
         };
     }
 
-    get rec() {
-        return this._rectangle;
+    get x() {
+        return this._circle.pos.x + this._circle.rad;
     }
-    get pos() {
-        return this._rectangle.tLeft;
+    get y() {
+        return this._circle.pos.y + this._circle.rad;
     }
-    get dim() {
-        return this._rectangle.dim;
+    get rad() {
+        return this._circle.rad;
     }
     get color() {
         return this._color;
@@ -210,7 +181,7 @@ class GameObject {
     get physics() {
         return this._properties.physics;
     }
-    get colType() {
+    get listCols() {
         return this._properties.colType;
     }
 
@@ -225,10 +196,10 @@ class GameObject {
         this._properties.colType[type] = state;
     }
     addVel(change) {
-        this._velocity.add(change);
+        this._velocity.addTo(change);
     }
     addPos(change) {
-        this._rectangle.addPos(change);
+        this._circle.addPos(change);
     }
     behave() {
         return new ChangesPosVel();
@@ -237,6 +208,6 @@ class GameObject {
         return new ChangesPosVel();
     }
     toString() {
-        return this._rectangle;
+        return this.circle.toString();
     }
 }

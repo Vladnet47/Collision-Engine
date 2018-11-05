@@ -1,4 +1,170 @@
 
+class NewModelTest {
+    constructor() {
+        this._collisionRecords = [];
+        this._collisionRecords = [];
+        this._types = ["top", "right", "bottom", "left"];
+        this._pos = [];
+        this._segVel = [];
+        this._segRec = [];
+    }
+
+    // list must be in { physics, physics physics, nonphysics nonphysics } organization
+    update(list, deltaTime) {
+        this._collisionRecords = [];
+        this._collisionObjects = [];
+        this.checkCollisions(list, deltaTime);
+        return this._collisionRecords;
+    }
+
+    // Checks each object in list with every other object in list for collision
+    checkCollisions(list, deltaTime) {
+        for (let index1 = 0; index1 < list.length; ++index1) {
+            let gameObject1 = list[index1];
+            if (!gameObject1.physics) { break; }
+
+            for (let index2 = index1 + 1; index2 < list.length; ++index2) {
+                let gameObject2 = list[index2];
+                this.initSegments(gameObject1, gameObject2, gameObject2.vel, deltaTime);
+
+                // if collision not registered one way, then check other way
+                if ( !this.recordCollision(gameObject1, index1, gameObject2, index2) ) {
+                    this.initSegments(gameObject2, gameObject1, gameObject1.vel, deltaTime);
+                    this.recordCollision(gameObject2, index2, gameObject1, index1);
+                }
+            }
+        }
+    }
+
+    // Records collision if it occurs and returns true. If collision does not occur, returns false.
+    recordCollision(gameObject1, index1, gameObject2, index2) {
+        let collided = false;
+
+        let maxMagnitude = -1,
+            pos, int, type;
+
+        for (let iVel = 0; iVel < 4; ++iVel) {
+            let curSegVel = this._segVel[iVel],
+                curPos = this._pos[iVel];
+            for (let iRec = 0; iRec < 4; ++iRec) {
+                let curSegRec = this._segRec[iRec],
+                    type2 = this._types[iRec];
+
+                // check for potential collision. If found, function returns true
+                if ( segSegInRange(curSegVel, curSegRec) ) {
+                    // check potential collision for actual collision. If found, variables updated with current information
+                    let intersection = segSegIntersect(curSegVel, curSegRec);
+                    if( intersection ) {
+                        let vec = vectorDiff(intersection, curPos),
+                            curMagnitude = vec.magnitude;
+                        if (curMagnitude > maxMagnitude) {
+                            maxMagnitude = curMagnitude;
+                            pos = curPos;
+                            int = intersection;
+                            type = type2;
+                        }
+                    }
+                    collided = true;
+                }
+            }
+        }
+
+        // record collision if there was an intersection using the variables above
+        if (maxMagnitude > -1) {
+            let offset = this.calcOffset(pos, int, type);
+            this.addRecord( gameObject1, index1, gameObject2, index2, new Collision(index2, type, offset) ); 
+        }
+
+        return collided;
+    }
+
+    calcOffset(pos, intersection, type) {
+        let offset = 0;
+        if (type == "left") {
+            offset = pos.x - intersection.x;
+        } else if (type == "right") {
+            offset = intersection.x - pos.x;
+        }
+
+        return offset;
+    }
+
+    // Adds collision to a collision record with the same gameObject and index, if exists, or
+    // creates a new collision record
+    addRecord(gameObject1, index1, gameObject2, index2, collision) {
+        let added = false,
+            otherExists = false;
+
+        for (let iRecord = 0; iRecord < this._collisionRecords.length; ++iRecord) {
+            let record = this._collisionRecords[iRecord];
+
+            // found collision record for index 1
+            if (record.i == index1) {
+                record.addCollision(collision);
+                added = true;
+            }
+
+            // found collision record for index 2
+            if (record.i == index2) {
+                otherExists = true;
+            }
+        }
+
+        // if no existing records were found
+        if(!added) {
+            let newRecord = new CollisionRecord(gameObject1, index1);
+            newRecord.addCollision(collision);
+            this._collisionRecords.push(newRecord);
+        }
+
+        if(!otherExists) {
+            this._collisionRecords.push(new CollisionRecord(gameObject2, index2))
+        }
+    }
+
+    initCollisionObjects() {
+        let numOfRecords = this._collisionRecords.length;
+
+        for (let index = 0; index < numOfRecords; ++index) {
+            let curRecord = this._collisionRecords[index];
+            let newObject = new CollisionObject(curRecord.i, curRecord.gam.vel, !curRecord.gam.physics);
+            let collision = curRecord.cols;
+        }
+    }
+
+    getLeftCollisionObject() {
+        if (this._collisionObjects.length == 0) {
+            return;
+        }
+
+        let index = 0;
+        return index;
+    }
+
+    initSegments(gameObject1, gameObject2, vel2, deltaTime) {
+        this._pos = this.initPos(gameObject1);
+        this._segVel = this.initVel(gameObject1, this._pos, vel2, deltaTime);
+        this._segRec = this.initRec(gameObject2);
+    }
+    initPos(gameObject) {
+        return [ gameObject.rec.tLeft, gameObject.rec.tRight, gameObject.rec.bRight, gameObject.rec.bLeft ];
+    }
+    initRec(gameObject) {
+        return [ gameObject.rec.segTop, gameObject.rec.segRight, gameObject.rec.segBot, gameObject.rec.segLeft ];
+    }
+    initVel(gameObject1, pos1, vel2, deltaTime) {
+        let vel = vectorMult( vectorSum( gameObject1.vel, vectorMult(vel2, -1) ), -deltaTime);
+        return [ this.consVelSegment(pos1[0], vel), this.consVelSegment(pos1[1], vel), 
+                 this.consVelSegment(pos1[2], vel), this.consVelSegment(pos1[3], vel) ];
+    }
+    consVelSegment(pos, vel) {
+        return new Segment( pos, new Vector(pos.x + vel.x, pos.y + vel.y) );
+    }
+}
+
+
+
+
 class NarrowCollisionEngine {
     constructor() {}
 

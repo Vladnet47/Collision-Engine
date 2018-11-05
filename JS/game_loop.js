@@ -2,8 +2,12 @@ var events = {
     // list of possible events
     leftArrowDown: false,
     rightArrowDown: false,
+    upArrowDown: false,
+    botArrowDown: false,
     spaceDown: false,
     aDown: false,
+    wDown: false,
+    sDown: false,
     dDown: false,
 
     // checks external inputs from keyboard and mouse
@@ -18,7 +22,11 @@ var events = {
             32: function() { events.spaceDown = state },
             37: function() { events.leftArrowDown = state },
             39: function() { events.rightArrowDown = state },
+            38: function() { events.upArrowDown = state },
+            40: function() { events.botArrowDown = state },
             65: function() { events.aDown = state },
+            87: function() { events.wDown = state },
+            83: function() { events.sDown = state },
             68: function() { events.dDown = state }
         }
     
@@ -53,7 +61,7 @@ $(document).ready(function() {
     let context = canvas.getContext('2d');
     
     let envir = new Environment(canvas);
-    envir.init4();
+    envir.init();
 
     loop();
 
@@ -71,25 +79,6 @@ $(document).ready(function() {
         } finally {
             requestAnimationFrame(loop);
         }
-
-        // let seg = [ new Segment(new Vector(50,50), new Vector(50,60)),
-        //             new Segment( new Vector(50,50), new Vector(0, 10) ),
-        //             new Segment(new Vector(10,10), new Vector(30,30)),
-        //             new Segment(new Vector(100,10), new Vector(100,50))
-        //              ]
-
-
-        // for(let index = 0; index < seg.length; ++index) {
-        //     let seg1 = seg[index];
-        //     console.log(seg1.toString())
-        //     console.log(consVelSegment(seg1.pos1, seg1.vector).toString());
-
-        //     for(let index2 = 0; index2 < seg.length; ++index2) {
-        //         let seg2 = seg[index2];
-        //         // console.log(seg1 + ", " + seg2 + ": potential intersection is " + segSegInRange(seg1, seg2));
-        //         // console.log(seg1 + ", " + seg2 + ": intersection is " + segSegIntersect(seg1, seg2));
-        //     }
-        // }
     }
 })
 

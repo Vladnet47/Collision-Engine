@@ -1,68 +1,64 @@
 
 // SETUP ---------------------------------------------------------------------------------------------
-class Player extends GameObject{
-    constructor(Rectangle, color, velocity, mass) {
-        super(Rectangle, color, velocity, mass);
+class Player extends GameObject {
+    constructor(circle, color, velocity, mass) {
+        super(circle, color, velocity, mass);
         this.traits = {
             move: { maxSpeed: 200, accel: 1000 },
-            jump: { speed: 500, maxJumps: 4, curJump: 0, letGo: false }
+            boost: { speed: 500, delay: 3, letGo: false }
         };
     }
     // BEHAVIOR ---------------------------------------------------------------------------------------------
     behave() {
         let changes = new ChangesPosVel();
-        changes.add(this.jumpPlatformer());
-        changes.add(this.movePlatformer());
+        changes.add(this.move());
+        changes.add(this.boost());
         return changes;
     }
-    movePlatformer() {
+    move() {
         let changes = new ChangesPosVel();
-        let playerVelocityX = this.vel.x;
-        let playerVelocityABS = Math.abs(playerVelocityX);
-        // if player is moving slower than its max speed, pressing the controls will increase speed respectively
-        if (playerVelocityX < this.traits.move.maxSpeed && (events.rightArrowDown || events.dDown)) {
-            changes.addVelDel(vectorToXY(this.traits.move.accel, 0));
+        let angle = -1;
+
+        // if velocity is already greater than the max, return changes
+        // if (this.vel.magnitude >= this.traits.move.accel) {
+        //     return changes;
+        // }
+        
+        // find direction from buttom presses
+        if (events.rightArrowDown || events.dDown) {
+            if (events.upArrowDown || events.wDown) {
+                angle = 45;
+            } else {
+                (events.botArrowDown || events.sDown) ? angle = 315 : angle = 0;
+            }
+        } else if (events.upArrowDown || events.wDown) {
+            (events.leftArrowDown || events.aDown) ? angle = 135 : angle = 90;
+        } else if (events.leftArrowDown || events.aDown) {
+            (events.botArrowDown || events.sDown) ? angle = 225 : angle = 180;
+        } else if (events.botArrowDown || events.sDown) {
+            angle = 270;
         }
-        if (playerVelocityX > -this.traits.move.maxSpeed && (events.leftArrowDown || events.aDown)) {
-            changes.addVelDel(vectorToXY(this.traits.move.accel, 180));
+
+        // add delta velocity in direction
+        if (angle > -1) {
+            changes.addVelDel(vectorToXY(this.traits.move.accel, angle));
         }
-        // if player is moving faster than max speed, speed is reduced to max
-        else if (playerVelocityABS > this.traits.move.maxSpeed) {
-            let difference = playerVelocityABS - this.traits.move.maxSpeed;
-            changes.addVelIns(vectorToXY(difference * getSign(playerVelocityX), 180));
-        }
+
         return changes;
     }
-    jumpPlatformer() {
+    boost() {
         let changes = new ChangesPosVel();
-        // Reset number of jumps once player touches ground
-        if (this.colType.ground) {
-            this.traits.jump.curJump = 0;
-        }
-        // Check if player let go of the space bar
-        if (!events.spaceDown) {
-            this.traits.jump.letGo = true;
-        }
-        // If spacebar is pressed
-        // If spacebar was released after previous jump
-        // If there are jumps available 
-        // Then jump
-        if (events.spaceDown && this.traits.jump.letGo && this.traits.jump.curJump < this.traits.jump.maxJumps) {
-            this.traits.jump.curJump++;
-            this.traits.jump.letGo = false;
-            let currentVelocity = this.vel.y;
-            changes.addVelIns(vectorToXY(this.traits.jump.speed + currentVelocity, 90));
+        return changes;
+    }
+    // locks speed at maximum
+    reduce(changes) {
+        if (this.vel.magnitude > this.traits.move.maxSpeed) {
+            changes.addVelIns(vectorToXY(this.vel.magnitude - this.traits.move.maxSpeed, -this.vel.angle));
         }
         return changes;
     }
     collided(type, segment) {
         GameObject.prototype.collided.call(this);
-    }
-}
-
-class Platform extends GameObject {
-    constructor(Rectangle, color, velocity, mass) {
-        super(Rectangle, color, velocity, mass);
     }
 }
 

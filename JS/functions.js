@@ -22,16 +22,6 @@ function vectorRound(vec, decimal) {
     return new Vector( round( vec.x, decimal ), round( vec.y, decimal ) );
 }
 
-// Returns a new vector that is 'vec1 + vec2'
-function vectorSum(vec1, vec2) {
-    return new Vector( vec1.x + vec2.x, vec1.y + vec2.y );
-}
-
-// Returns a new vector that is 'vec1 - vec2'
-function vectorDiff(vec1, vec2) {
-    return ( vectorSum( vec1, vectorMult(vec2, -1) ) );
-}
-
 // Returns a new vector that is 'vec * scalar'
 function vectorMult(vec, scalar) {
     return new Vector( vec.x * scalar, vec.y * scalar );
@@ -125,6 +115,13 @@ function drawRect(context, gameObject) {
                      gameObject.pos.y, 
                      gameObject.dim.x, 
                      gameObject.dim.y);
+}
+
+function drawCirc(context, gameObject) {
+    context.beginPath();
+    context.arc(gameObject.x, gameObject.y, gameObject.rad, 0, 2 * Math.PI, false);
+    context.fillStyle = gameObject.color;
+    context.fill();
 }
 
 function drawLine(context, Vector) {
