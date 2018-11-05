@@ -12,7 +12,7 @@ class Vector {
         return this._y;
     }
     get magnitude() {
-        return Math.sqrt( Math.pow( this.x, 2 ) + Math.pow( this.y, 2 ) );
+        return Math.sqrt( this._x * this._x + this._y * this._y );
     }
     // returns counter clockwise from the x-axis
     get angle() {
@@ -185,6 +185,9 @@ class GameObject {
         return this._properties.colType;
     }
 
+    set color(color) {
+        this._color = color;
+    }
     set collidable(state) {
         this._properties.collidable = state;
     }

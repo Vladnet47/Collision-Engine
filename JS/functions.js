@@ -13,8 +13,8 @@ function getSign(value) {
 }
 
 // Returns the distance between two points, given as vectors
-function distance(point1, point2) {
-    return Math.sqrt( Math.pow( point2.x-point1.x, 2 ) + Math.pow( point2.y-point1.y, 2 ) );
+function distance(x1, y1, x2, y2) {
+    return Math.sqrt( Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2) );
 }
 
 // Rounds vector components to a decimal
