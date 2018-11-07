@@ -54,6 +54,8 @@ var systemTime = {
     },
 }
 
+var pause = false;
+
 // ############################################ GAME LOOP ############################################ //
 
 $(document).ready(function() {
@@ -71,14 +73,22 @@ $(document).ready(function() {
         let deltaTime = systemTime.getDeltaTime();
         events.checkEvents();
 
+        // press space to unpause
+        if (pause && events.spaceDown) { 
+            pause = false;
+        }
+
         try {
-            envir.update(deltaTime);
+            if (!pause) {
+                envir.update(deltaTime);
+            }
             envir.render(context);
         } catch (err) {
             console.log( err.message );
         } finally {
             requestAnimationFrame(loop);
         }
+        
     }
 })
 

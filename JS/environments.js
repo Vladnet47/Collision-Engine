@@ -25,13 +25,18 @@ class Environment {
         player.collidable = true;
         player.physics = true;
 
-        let gam = new GameObject(new Circle(new Vector(600, 300), 60), 'rgb(51, 204, 51)', new Vector(0, 0), 100);
-        gam.collidable = true;
-        gam.physics = true;
+        let gam1 = new GameObject(new Circle(new Vector(600, 300), 60), 'rgb(51, 204, 51)', new Vector(0, 0), 100);
+        gam1.collidable = true;
+        gam1.physics = true;
+
+        // let gam2 = new GameObject(new Circle(new Vector(20, 20), 10), 'rgb(51, 204, 51)', new Vector(0, 20), 100);
+        // gam2.collidable = true;
+        // gam2.physics = true;
 
         this._gameObjectsNext.push(player);
-        this._gameObjectsNext.push(gam);
-        this._nObjects = 2;
+        this._gameObjectsNext.push(gam1);
+        // this._gameObjectsNext.push(gam2);
+        this._nObjects = this._gameObjectsNext.length;
 
         this._narrowColEngine = new NarrowCollisionEngine();
     }
@@ -55,7 +60,7 @@ class Environment {
 
             // CALCULATE CHANGE IN VELOCITY DUE TO GLOBAL EFFECTS
             if( gameObject.physics ) {
-                // Gravity
+                // changes.velDel.addTo(new Vector(0, 10));
             }
 
             // CALCULATE CHANGE IN VELOCITY DUE TO INDIVIDUAL MOVEMENT
@@ -83,7 +88,12 @@ class Environment {
                 let other = this._gameObjectsCurrent[j]
                 if (other.collidable == false) continue;
 
-                this._narrowColEngine.record(current, i, other, j) ? current.color = 'rgb(255, 71, 26)': current.color = 'rgb(0, 153, 255)';
+                if (current instanceof Player) {
+                    this.testCol(current, other, deltaTime)
+                }
+                
+
+                //this._narrowColEngine.record(current, i, other, j) ? current.color = 'rgb(255, 71, 26)' : current.color = 'rgb(0, 153, 255)';
             }
 
             // handle collisions
@@ -94,6 +104,56 @@ class Environment {
 
                 this.updateVel(current, changes, deltaTime);
                 this.updatePos(current, changes);
+            }
+        }
+    }
+
+    testCol(current, other, deltaTime) {
+        // find distance from gameObject and other, respectively
+        let distX = other.x - current.x;
+        let distY = other.y - current.y;
+        let dist = magnitude(distX, distY);
+
+        // find gameObject velocity
+        let velGamX = current.vel.x * deltaTime;
+        let velGamY = current.vel.y * deltaTime;
+        let velGam = current.vel.mag * deltaTime;
+
+        // find other velocity
+        let velOthX = other.vel.x * deltaTime;
+        let velOthY = other.vel.y * deltaTime;
+        let velOth = other.vel.mag * deltaTime;
+        
+        // find sum of radii
+        let radSum = current.rad + other.rad;
+
+        // BROAD PHASE
+        // if the objects are too far apart, return
+        if (dist > radSum + velGam + velOth) {
+            return;
+        }
+
+        let velDiffX = -(velOthX - velGamX);
+        let velDiffY = -(velOthY - velGamY);
+        let posDiffX = other.x - current.x;
+        let posDiffY = other.y - current.y;
+
+        let a = Math.pow(velDiffX, 2) + Math.pow(velDiffY, 2);
+        let b = -2 * (posDiffX * velDiffX + posDiffY * velDiffY);
+        let c = Math.pow(posDiffX, 2) + Math.pow(posDiffY, 2) - Math.pow(radSum, 2);
+        let discriminant = Math.pow(b, 2) - 4 * a * c;
+
+        if (discriminant >= 0) {
+            let t;
+            let sqrtDisc = Math.sqrt(discriminant);
+
+            let t1 = (-b + sqrtDisc) / (2 * a);
+            let t2 = (-b - sqrtDisc) / (2 * a);
+
+            (t1 > t2) ? t = t2 : t = t1;
+            
+            if (t >= 0 && t <= 1) {
+                pause = true;
             }
         }
     }

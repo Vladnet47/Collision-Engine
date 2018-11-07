@@ -40,7 +40,7 @@ class NewModelTest {
     recordCollision(gameObject1, index1, gameObject2, index2) {
         let collided = false;
 
-        let maxMagnitude = -1,
+        let maxmag = -1,
             pos, int, type;
 
         for (let iVel = 0; iVel < 4; ++iVel) {
@@ -56,9 +56,9 @@ class NewModelTest {
                     let intersection = segSegIntersect(curSegVel, curSegRec);
                     if( intersection ) {
                         let vec = vectorDiff(intersection, curPos),
-                            curMagnitude = vec.magnitude;
-                        if (curMagnitude > maxMagnitude) {
-                            maxMagnitude = curMagnitude;
+                            curmag = vec.mag;
+                        if (curmag > maxmag) {
+                            maxmag = curmag;
                             pos = curPos;
                             int = intersection;
                             type = type2;
@@ -70,7 +70,7 @@ class NewModelTest {
         }
 
         // record collision if there was an intersection using the variables above
-        if (maxMagnitude > -1) {
+        if (maxmag > -1) {
             let offset = this.calcOffset(pos, int, type);
             this.addRecord( gameObject1, index1, gameObject2, index2, new Collision(index2, type, offset) ); 
         }
@@ -307,7 +307,7 @@ class TierIII extends NarrowCollisionEngine {
 
     // Returns the type of segment the gameObject collided with
     segmentType() {
-        let maxMagnitude = 0,
+        let maxmag = 0,
             result = "none";
 
         for (let index = 0; index < this._potentialColls.length; ++index) {
@@ -319,11 +319,11 @@ class TierIII extends NarrowCollisionEngine {
             if(intersection) {
                 let posCur = this._pos[iGam],
                     vec = new Vector( intersection.x - posCur.x, intersection.y - posCur.y ),
-                    curMagnitude = vec.magnitude;
+                    curmag = vec.mag;
 
-                if( curMagnitude > maxMagnitude ) {
+                if( curmag > maxmag ) {
                     result = this._type[iOth];
-                    maxMagnitude = curMagnitude;
+                    maxmag = curmag;
                 }
             }
         }
@@ -430,7 +430,7 @@ class TierIV extends NarrowCollisionEngine {
                         }
                         
                     } else if ( gamX != othX) { // opposite direction x
-                        let posRatio = gameObject.vel.magnitude / vectorSum( gameObject.vel, vectorMult( other.vel, -1 ) ).magnitude;
+                        let posRatio = gameObject.vel.mag / vectorSum( gameObject.vel, vectorMult( other.vel, -1 ) ).mag;
 
                         offsetGam = offset * posRatio;
                         offsetOth = -offset * (1 - posRatio);
@@ -465,7 +465,7 @@ class TierIV extends NarrowCollisionEngine {
 
     // Returns the type of segment the gameObject collided with
     segmentType() {
-        let maxMagnitude = 0,
+        let maxmag = 0,
             result = "none";
 
         for (let iGam = 0; iGam < this._segGam.length; ++iGam) {
@@ -476,11 +476,11 @@ class TierIV extends NarrowCollisionEngine {
                 if(intersection) {
                     let posCur = this._pos[iGam],
                         vec = new Vector( intersection.x - posCur.x, intersection.y - posCur.y ),
-                        curMagnitude = vec.magnitude;
+                        curmag = vec.mag;
 
-                    if( curMagnitude > maxMagnitude ) {
+                    if( curmag > maxmag ) {
                         result = this._type[iOth];
-                        maxMagnitude = curMagnitude;
+                        maxmag = curmag;
                     }
                 }
             }

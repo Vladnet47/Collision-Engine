@@ -20,7 +20,7 @@ class Player extends GameObject {
         let angle = -1;
 
         // if velocity is already greater than the max, return changes
-        // if (this.vel.magnitude >= this.traits.move.accel) {
+        // if (this.vel.mag >= this.traits.move.accel) {
         //     return changes;
         // }
         
@@ -52,8 +52,8 @@ class Player extends GameObject {
     }
     // locks speed at maximum
     reduce(changes) {
-        if (this.vel.magnitude > this.traits.move.maxSpeed) {
-            changes.addVelIns(vectorToXY(this.vel.magnitude - this.traits.move.maxSpeed, -this.vel.angle));
+        if (this.vel.mag > this.traits.move.maxSpeed) {
+            changes.addVelIns(vectorToXY(this.vel.mag - this.traits.move.maxSpeed, -this.vel.angle));
         }
         return changes;
     }

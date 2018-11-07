@@ -14,7 +14,11 @@ function getSign(value) {
 
 // Returns the distance between two points, given as vectors
 function distance(x1, y1, x2, y2) {
-    return Math.sqrt( Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2) );
+    return magnitude(x1 - x2, y1- y2);
+}
+
+function magnitude(x, y) {
+    return Math.sqrt( Math.pow(x, 2) + Math.pow(y, 2) );
 }
 
 // Rounds vector components to a decimal
@@ -36,11 +40,11 @@ function vectorCross (vec1, vec2) {
     return vec1.x * vec2.y - vec1.y * vec2.x;
 }
 
-// Returns a Vector with x and y components calculated from magnitude and direction.
+// Returns a Vector with x and y components calculated from mag and direction.
 // Direction is given in degrees
-function vectorToXY(magnitude, direction) {
-    let x = Math.cos(toRadians(direction)) * magnitude;
-    let y = Math.sin(toRadians(-direction)) * magnitude;
+function vectorToXY(mag, direction) {
+    let x = Math.cos(toRadians(direction)) * mag;
+    let y = Math.sin(toRadians(-direction)) * mag;
     return ( new Vector(x, y) );
 }
 

@@ -11,8 +11,8 @@ class Vector {
     get y() {
         return this._y;
     }
-    get magnitude() {
-        return Math.sqrt( this._x * this._x + this._y * this._y );
+    get mag() {
+        return magnitude(this._x, this._y);
     }
     // returns counter clockwise from the x-axis
     get angle() {
@@ -49,8 +49,8 @@ class Segment {
     get vector() {
         return new Vector( this._position2.x - this._position1.x, this._position2.y - this._position1.y );
     }
-    get magnitude() {
-        return this.vector.magnitude;
+    get mag() {
+        return this.vector.mag;
     }
 
     toString() {
