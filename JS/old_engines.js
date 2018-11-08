@@ -10,26 +10,26 @@ class NewModelTest {
     }
 
     // list must be in { physics, physics physics, nonphysics nonphysics } organization
-    update(list, deltaTime) {
+    update(list, deltaT) {
         this._collisionRecords = [];
         this._collisionObjects = [];
-        this.checkCollisions(list, deltaTime);
+        this.checkCollisions(list, deltaT);
         return this._collisionRecords;
     }
 
     // Checks each object in list with every other object in list for collision
-    checkCollisions(list, deltaTime) {
+    checkCollisions(list, deltaT) {
         for (let index1 = 0; index1 < list.length; ++index1) {
             let gameObject1 = list[index1];
             if (!gameObject1.physics) { break; }
 
             for (let index2 = index1 + 1; index2 < list.length; ++index2) {
                 let gameObject2 = list[index2];
-                this.initSegments(gameObject1, gameObject2, gameObject2.vel, deltaTime);
+                this.initSegments(gameObject1, gameObject2, gameObject2.vel, deltaT);
 
                 // if collision not registered one way, then check other way
                 if ( !this.recordCollision(gameObject1, index1, gameObject2, index2) ) {
-                    this.initSegments(gameObject2, gameObject1, gameObject1.vel, deltaTime);
+                    this.initSegments(gameObject2, gameObject1, gameObject1.vel, deltaT);
                     this.recordCollision(gameObject2, index2, gameObject1, index1);
                 }
             }
@@ -141,9 +141,9 @@ class NewModelTest {
         return index;
     }
 
-    initSegments(gameObject1, gameObject2, vel2, deltaTime) {
+    initSegments(gameObject1, gameObject2, vel2, deltaT) {
         this._pos = this.initPos(gameObject1);
-        this._segVel = this.initVel(gameObject1, this._pos, vel2, deltaTime);
+        this._segVel = this.initVel(gameObject1, this._pos, vel2, deltaT);
         this._segRec = this.initRec(gameObject2);
     }
     initPos(gameObject) {
@@ -152,8 +152,8 @@ class NewModelTest {
     initRec(gameObject) {
         return [ gameObject.rec.segTop, gameObject.rec.segRight, gameObject.rec.segBot, gameObject.rec.segLeft ];
     }
-    initVel(gameObject1, pos1, vel2, deltaTime) {
-        let vel = vectorMult( vectorSum( gameObject1.vel, vectorMult(vel2, -1) ), -deltaTime);
+    initVel(gameObject1, pos1, vel2, deltaT) {
+        let vel = multiplyVector( vectorSum( gameObject1.vel, multiplyVector(vel2, -1) ), -deltaT);
         return [ this.consVelSegment(pos1[0], vel), this.consVelSegment(pos1[1], vel), 
                  this.consVelSegment(pos1[2], vel), this.consVelSegment(pos1[3], vel) ];
     }
@@ -257,8 +257,8 @@ class TierIII extends NarrowCollisionEngine {
         this._segOth = [];
     }
 
-    potentialCollision(gameObject, other, deltaTime) {
-        this.init(gameObject, other, deltaTime);
+    potentialCollision(gameObject, other, deltaT) {
+        this.init(gameObject, other, deltaT);
 
         this._potentialColls = [];
 
@@ -346,8 +346,8 @@ class TierIII extends NarrowCollisionEngine {
     }
 
     // Creates 
-    init(gameObject, other, deltaTime) {
-        let vel = vectorMult(gameObject.vel, -deltaTime);
+    init(gameObject, other, deltaT) {
+        let vel = multiplyVector(gameObject.vel, -deltaT);
         this._pos = [ gameObject.pos, gameObject.rec.tRight, gameObject.rec.bRight, gameObject.rec.bLeft ];
         this._segGam = [ this.consVelSegment(this._pos[0], vel), this.consVelSegment(this._pos[1], vel), 
                          this.consVelSegment(this._pos[2], vel), this.consVelSegment(this._pos[3], vel) ];
@@ -371,8 +371,8 @@ class TierIV extends NarrowCollisionEngine {
         this._tierIII = new TierIII();
     }
 
-    potentialCollision(gameObject, other, deltaTime) {
-        this.init(gameObject, other, deltaTime);
+    potentialCollision(gameObject, other, deltaT) {
+        this.init(gameObject, other, deltaT);
 
         this._potentialColls = [];
 
@@ -391,7 +391,7 @@ class TierIV extends NarrowCollisionEngine {
         return this._potentialColls.length > 0;
     }
 
-    update(potentialCols, deltaTime) {
+    update(potentialCols, deltaT) {
         let changes = [],
             numOfCols = potentialCols.length;
 
@@ -403,7 +403,7 @@ class TierIV extends NarrowCollisionEngine {
                 other = potentialCols[col];
         
             if ( other.physics ) {
-                this.init(gameObject, other, deltaTime);
+                this.init(gameObject, other, deltaT);
                 let type = this.segmentType();  
                 let offsetGam = 0, offsetOth = 0, curVelGam = 0, curVelOth = 0, angle = 0;
 
@@ -430,7 +430,7 @@ class TierIV extends NarrowCollisionEngine {
                         }
                         
                     } else if ( gamX != othX) { // opposite direction x
-                        let posRatio = gameObject.vel.mag / vectorSum( gameObject.vel, vectorMult( other.vel, -1 ) ).mag;
+                        let posRatio = gameObject.vel.mag / vectorSum( gameObject.vel, multiplyVector( other.vel, -1 ) ).mag;
 
                         offsetGam = offset * posRatio;
                         offsetOth = -offset * (1 - posRatio);
@@ -450,8 +450,8 @@ class TierIV extends NarrowCollisionEngine {
         return changes;
     }
 
-    init(gameObject, other, deltaTime) {
-        let vel = vectorMult( vectorSum( gameObject.vel, vectorMult(other.vel, -1) ), -deltaTime);
+    init(gameObject, other, deltaT) {
+        let vel = multiplyVector( vectorSum( gameObject.vel, multiplyVector(other.vel, -1) ), -deltaT);
         this._pos = [ gameObject.pos, gameObject.rec.tRight, gameObject.rec.bRight, gameObject.rec.bLeft ];
         this._segGam = [ this.consVelSegment(this._pos[0], vel), this.consVelSegment(this._pos[1], vel), 
                          this.consVelSegment(this._pos[2], vel), this.consVelSegment(this._pos[3], vel) ];

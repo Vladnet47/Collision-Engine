@@ -1,3 +1,5 @@
+// GLOBAL VARIABLES
+
 var events = {
     // list of possible events
     leftArrowDown: false,
@@ -54,6 +56,8 @@ var systemTime = {
     },
 }
 
+var deltaT = 0;
+
 var pause = false;
 
 // ############################################ GAME LOOP ############################################ //
@@ -70,7 +74,7 @@ $(document).ready(function() {
     function loop() {
         context.clearRect(0, 0, canvas.width, canvas.height);
         
-        let deltaTime = systemTime.getDeltaTime();
+        deltaT = systemTime.getDeltaTime();
         events.checkEvents();
 
         // press space to unpause
@@ -80,7 +84,7 @@ $(document).ready(function() {
 
         try {
             if (!pause) {
-                envir.update(deltaTime);
+                envir.update();
             }
             envir.render(context);
         } catch (err) {

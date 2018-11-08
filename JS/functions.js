@@ -21,18 +21,19 @@ function magnitude(x, y) {
     return Math.sqrt( Math.pow(x, 2) + Math.pow(y, 2) );
 }
 
+// returns the angle in degrees between the two given vectors
+// function angleVector(vec1, vec2) {
+//     return ()
+// }
+
 // Rounds vector components to a decimal
 function vectorRound(vec, decimal) {
     return new Vector( round( vec.x, decimal ), round( vec.y, decimal ) );
 }
 
 // Returns a new vector that is 'vec * scalar'
-function vectorMult(vec, scalar) {
+function multiplyVector(vec, scalar) {
     return new Vector( vec.x * scalar, vec.y * scalar );
-}
-
-function vectorDiv(vec, scalar) {
-    return ( vectorMult( vec, 1/scalar ) );
 }
 
 // Returns the two dimensional cross product of given vectors
@@ -75,13 +76,13 @@ function segSegIntersect(seg1, seg2) {
     if (b == 0 && num == 0) {
         return false; // parallel and intersecting
     } else {
-        t = vectorCross(a, vectorDiv(seg2.vector, b)), // a x v2 / b
-        u = vectorCross(a, vectorDiv(seg1.vector, b)); // a x v1 / b
+        t = vectorCross(a, multiplyVector(seg2.vector, -b)), // a x v2 / b
+        u = vectorCross(a, multiplyVector(seg1.vector, -b)); // a x v1 / b
 
         if( 0 <= t && t <= 1 && 0 <= u && u <= 1 ) {
             let intersection = new Vector(0,0);
             intersection.add( seg1.pos1 );
-            intersection.add( vectorMult(seg1.vector, t) );
+            intersection.add( multiplyVector(seg1.vector, t) );
             return intersection; // not parallel and intersecting
         }
     }

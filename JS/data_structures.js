@@ -19,12 +19,18 @@ class Vector {
         return Math.atan(this._y / this._x) * -180 / Math.PI;
     }
 
+    // returns sum of this vector and other
     add(other) {
         return new Vector(this._x + other.x, this._y + other.y);
     }
+    // adds other vector to this vector
     addTo(other) {
         this._x += other.x;
         this._y += other.y;
+    }
+    clear() {
+        this._x = 0;
+        this._y = 0;
     }
 
     toString() {

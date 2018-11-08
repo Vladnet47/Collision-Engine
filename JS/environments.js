@@ -29,9 +29,9 @@ class Environment {
         gam1.collidable = true;
         gam1.physics = true;
 
-        // let gam2 = new GameObject(new Circle(new Vector(20, 20), 10), 'rgb(51, 204, 51)', new Vector(0, 20), 100);
-        // gam2.collidable = true;
-        // gam2.physics = true;
+        let gam2 = new GameObject(new Circle(new Vector(20, 20), 10), 'rgb(51, 204, 51)', new Vector(100, 100), 100);
+        gam2.collidable = true;
+        gam2.physics = true;
 
         this._gameObjectsNext.push(player);
         this._gameObjectsNext.push(gam1);
@@ -42,38 +42,78 @@ class Environment {
     }
 
     // Calculates the next position of each GameObject in the environment
-    update(deltaTime) {
+    update() {
         this._gameObjectsCurrent = this._gameObjectsNext;
         this._gameObjectsNext = [];
-        this.behave(deltaTime);
-        this.collide(deltaTime);
 
-        // dangerous line
+        let changesCurrent = this.initChanges();
+        this.behave(changesCurrent);
+        this.collide(changesCurrent);
+        this.updateChanges(changesCurrent);
+
         this._gameObjectsNext = this._gameObjectsCurrent;
     }
 
-    // Updates positions of all GameObjects before collision
-    behave(deltaTime) {
-        for (let index = 0; index < this._nObjects; ++index) {
-            let gameObject = this._gameObjectsCurrent[index];
-            let changes = new ChangesPosVel();
+    initChanges() {
+        let changesCurrent = [];
+        let i = 0;
+        while (changesCurrent.push(new ChangesPosVel()) < this._nObjects) {
+            i++;
+        }
+        return changesCurrent;
+    }
 
-            // CALCULATE CHANGE IN VELOCITY DUE TO GLOBAL EFFECTS
-            if( gameObject.physics ) {
-                // changes.velDel.addTo(new Vector(0, 10));
+    updateChanges(changesCurrent) {
+        for (let i = 0; i < this._nObjects; i++) {
+            let current = this._gameObjectsCurrent[i];
+            let change = changesCurrent[i];
+
+            this.updateVelocity(current, change);
+            this.updatePosition(current, change);
+
+            if (current instanceof Player) {
+                console.log("velocity after = " + current.vel.mag);
             }
-
-            // CALCULATE CHANGE IN VELOCITY DUE TO INDIVIDUAL MOVEMENT
-            changes.add(gameObject.behave());
-
-            // UPDATE POSITION AND VELOCITY
-            this.updateVel(gameObject, changes, deltaTime);
-            changes.posDel = vectorMult(gameObject.vel, deltaTime);
-            this.updatePos(gameObject, changes);
         }
     }
 
-    collide(deltaTime) {
+    updateVelocity(gameObject, change) {
+        if (change.velDel.x != 0 || change.velDel.y != 0) {
+            change.velDel = multiplyVector(change.velDel, deltaT);
+        }
+        gameObject.addVel( change.velDel.add(change.velIns) );
+        change.velDel.clear();
+        change.velIns.clear();
+    }
+
+    updatePosition(gameObject, change) {
+        if (gameObject.vel.x != 0 || gameObject.vel.y != 0) {
+            change.posDel = multiplyVector(gameObject.vel, deltaT);
+        }
+        gameObject.addPos( change.posDel.add(change.posIns) );
+        change.posDel.clear()
+        change.posIns.clear();
+    }
+
+
+
+    // Updates positions of all GameObjects before collision
+    behave(changesCurrent) {
+        for (let i = 0; i < this._nObjects; i++) {
+            let current = this._gameObjectsCurrent[i];
+            let change = changesCurrent[i];
+
+            // GLOBAL BEHAVIOR
+
+            // INDIVIDUAL BEHAVIOR
+            change.add(current.behave());
+
+            // update velocity for collision
+            this.updateVelocity(current, change);
+        }
+    }
+
+    collide(changesCurrent) {
         if ( this._narrowColEngine == null ) 
             throw Error("No narrow collision engine specified");
 
@@ -81,100 +121,31 @@ class Environment {
 
         for (let i = 0; i < this._nObjects; i++) {
             let current = this._gameObjectsCurrent[i];
-            if (current.collidable == false || current.physics == false) continue;
+            if (current.collidable == false) continue;
 
             // check for collisions
             for (let j = i + 1; j < this._nObjects; j++) {
                 let other = this._gameObjectsCurrent[j]
                 if (other.collidable == false) continue;
 
-                if (current instanceof Player) {
-                    this.testCol(current, other, deltaTime)
-                }
-                
-
-                //this._narrowColEngine.record(current, i, other, j) ? current.color = 'rgb(255, 71, 26)' : current.color = 'rgb(0, 153, 255)';
-            }
-
-            // handle collisions
-            let listChanges = this._narrowColEngine.getChanges();
-            for (let k = 0; k < listChanges.length; k++) {
-                current = this._gameObjectsCurrent[listChanges[k].index];
-                let changes = listChanges[k].changes;
-
-                this.updateVel(current, changes, deltaTime);
-                this.updatePos(current, changes);
+                this._narrowColEngine.check(i, current, j, other);
             }
         }
-    }
 
-    testCol(current, other, deltaTime) {
-        // find distance from gameObject and other, respectively
-        let distX = other.x - current.x;
-        let distY = other.y - current.y;
-        let dist = magnitude(distX, distY);
+        // handle collisions
+        let listChanges = this._narrowColEngine.getChanges();
+        for (let k = 0; k < listChanges.length; k++) {
+            let index = listChanges[k].index;
+            let change = listChanges[k].change;
 
-        // find gameObject velocity
-        let velGamX = current.vel.x * deltaTime;
-        let velGamY = current.vel.y * deltaTime;
-        let velGam = current.vel.mag * deltaTime;
-
-        // find other velocity
-        let velOthX = other.vel.x * deltaTime;
-        let velOthY = other.vel.y * deltaTime;
-        let velOth = other.vel.mag * deltaTime;
-        
-        // find sum of radii
-        let radSum = current.rad + other.rad;
-
-        // BROAD PHASE
-        // if the objects are too far apart, return
-        if (dist > radSum + velGam + velOth) {
-            return;
+            changesCurrent[index].add(change);
         }
-
-        let velDiffX = -(velOthX - velGamX);
-        let velDiffY = -(velOthY - velGamY);
-        let posDiffX = other.x - current.x;
-        let posDiffY = other.y - current.y;
-
-        let a = Math.pow(velDiffX, 2) + Math.pow(velDiffY, 2);
-        let b = -2 * (posDiffX * velDiffX + posDiffY * velDiffY);
-        let c = Math.pow(posDiffX, 2) + Math.pow(posDiffY, 2) - Math.pow(radSum, 2);
-        let discriminant = Math.pow(b, 2) - 4 * a * c;
-
-        if (discriminant >= 0) {
-            let t;
-            let sqrtDisc = Math.sqrt(discriminant);
-
-            let t1 = (-b + sqrtDisc) / (2 * a);
-            let t2 = (-b - sqrtDisc) / (2 * a);
-
-            (t1 > t2) ? t = t2 : t = t1;
-            
-            if (t >= 0 && t <= 1) {
-                pause = true;
-            }
-        }
-    }
-
-    updateVel(gameObject, changes, deltaTime) {
-        changes.velDel = vectorMult(changes.velDel, deltaTime);
-        gameObject.addVel(changes.velDel);
-        gameObject.addVel(changes.velIns);
-    }
-
-    updatePos(gameObject, changes) {
-        gameObject.addPos(changes.posDel);
-        gameObject.addPos(changes.posIns);
     }
 
     // Draws each GameObject in the environment
     render(context) {
         this._gameObjectsNext.forEach( function (gameObject) { drawCirc(context, gameObject); } );
     }
-
-   
 
     // DEBUG ---------------------------------------------------------------------------------------------------------
     printYStats(gameObject) {

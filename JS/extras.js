@@ -510,12 +510,12 @@ class collisionGroup {
 
 
     // COLLISION METHODS ------------------------------------------------------------------------------------------------------
-    collide2(deltaTime) {
+    collide2(deltaT) {
         if ( this._narrowColEngine == null ) { throw Error("No narrow collision engine specified"); }
 
 
         // Test check potential cols
-        let potential = this._narrowColEngine.update(this._gameObjectsCurrent, deltaTime);
+        let potential = this._narrowColEngine.update(this._gameObjectsCurrent, deltaT);
 
         for(let index = 0; index < potential.length; ++index) {
             let record = potential[index];
@@ -527,7 +527,7 @@ class collisionGroup {
     }
 
     // Determines which objects collided and handles collisions
-    collideTEST(deltaTime) {
+    collideTEST(deltaT) {
         if ( this._narrowColEngine == null ) { throw Error("No narrow collision engine specified"); }
 
         let iCurrent = 0;
@@ -545,7 +545,7 @@ class collisionGroup {
             while(iOther < max) {
                 let other = this._gameObjectsCurrent[iOther];
 
-                if (other.collidable && this._narrowColEngine.potentialCollision(gameObject, other, deltaTime)) {
+                if (other.collidable && this._narrowColEngine.potentialCollision(gameObject, other, deltaT)) {
                     potentialCols.push(other);
                 }
                 iOther++;
@@ -557,7 +557,7 @@ class collisionGroup {
                 this._gameObjectsNext.push( this._gameObjectsCurrent.splice(iCurrent, 1)[0] );
                 max--;
             } else {
-                let changes = this._narrowColEngine.update(potentialCols, deltaTime);
+                let changes = this._narrowColEngine.update(potentialCols, deltaT);
 
                 for (let iCol = 0; iCol < numOfCols; ++iCol) {
                     let col = potentialCols[iCol];
@@ -565,7 +565,7 @@ class collisionGroup {
 
                     let iCurrentCol = this._gameObjectsCurrent.indexOf(col);
                     let gameObject = this._gameObjectsCurrent.splice(iCurrentCol, 1)[0];
-                    this.updateVel(gameObject, changesCol, deltaTime);
+                    this.updateVel(gameObject, changesCol, deltaT);
                     this.updatePos(gameObject, changesCol);
                     this._gameObjectsNext.push( gameObject );
                     max--;
@@ -574,7 +574,7 @@ class collisionGroup {
         }
     }
 
-    collide(deltaTime) {
+    collide(deltaT) {
         for ( let index = 0; index < this._gameObjectsCurrent.length; ++index ) {
             let gameObject = this._gameObjectsCurrent[index];
 
@@ -590,13 +590,13 @@ class collisionGroup {
 
                 let other = this._gameObjectsCurrent[indexOth];
 
-                if (other.collidable && this._narrowColEngine.potentialCollision(gameObject, other, deltaTime)) {
-                    changes.add( this._narrowColEngine.update(gameObject, other, deltaTime) );
+                if (other.collidable && this._narrowColEngine.potentialCollision(gameObject, other, deltaT)) {
+                    changes.add( this._narrowColEngine.update(gameObject, other, deltaT) );
                 }
             }
 
             // UPDATE POSITION AND VELOCITY
-            this.updateVel(gameObject, changes, deltaTime);
+            this.updateVel(gameObject, changes, deltaT);
             this.updatePos(gameObject, changes);
 
             this._gameObjectsNext.push(gameObject);
