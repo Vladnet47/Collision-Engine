@@ -82,17 +82,20 @@ $(document).ready(function() {
             pause = false;
         }
 
+
+        if (!pause) {
+            envir.update();
+        }
+        envir.render(context);
+        requestAnimationFrame(loop);
+
         try {
-            if (!pause) {
-                envir.update();
-            }
-            envir.render(context);
+            
         } catch (err) {
             console.log( err.message );
         } finally {
-            requestAnimationFrame(loop);
-        }
-        
+            
+        }        
     }
 })
 

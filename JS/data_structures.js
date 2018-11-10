@@ -21,12 +21,16 @@ class Vector {
 
     // returns sum of this vector and other
     add(other) {
-        return new Vector(this._x + other.x, this._y + other.y);
+        if (defined(other)) {
+            return new Vector(this._x + other.x, this._y + other.y);
+        }
     }
     // adds other vector to this vector
     addTo(other) {
-        this._x += other.x;
-        this._y += other.y;
+        if (defined(other)) {
+            this._x += other.x;
+            this._y += other.y;
+        }
     }
     clear() {
         this._x = 0;
@@ -38,94 +42,64 @@ class Vector {
     }
 }
 
-// SEGMENT -----------------------------------------------------------------------------------------------
-// Constructs line segment from two Vectors as endpoints
-class Segment {
-    constructor(position1, position2) {
-        this._position1 = position1;
-        this._position2 = position2;
-    }
-
-    get pos1() {
-        return this._position1;
-    }
-    get pos2() {
-        return this._position2;
-    }
-    get vector() {
-        return new Vector( this._position2.x - this._position1.x, this._position2.y - this._position1.y );
-    }
-    get mag() {
-        return this.vector.mag;
-    }
-
-    toString() {
-        return "Endpoints of segment are " + this._position1.toString() + " and " + this._position2.toString();
-    }
-}
-
-
-
 // CHANGESPOSVEL ---------------------------------------------------------------------------------------------
 class ChangesPosVel {
     constructor() {
-        this._position = { instant: new Vector(0, 0), delta: new Vector(0, 0) };
-        this._velocity = { instant: new Vector(0, 0), delta: new Vector(0, 0) };
+        this._position;
+        this._velocity;
+        this._acceleration;
     }
 
-    get posIns() {
-        return this._position.instant;
+    get pos() {
+        return this._position;
     }
-    get posDel() {
-        return this._position.delta;
+    get vel() {
+        return this._velocity;
     }
-    get velIns() {
-        return this._velocity.instant;
-    }
-    get velDel() {
-        return this._velocity.delta;
+    get acc() {
+        return this._acceleration;
     }
 
-    set posIns(other) {
-        this._position.instant = other;
+    add(changesOther) {
+        this.addPos(changesOther.pos);
+        this.addVel(changesOther.vel);
+        this.addAcc(changesOther.acc);
     }
-    set posDel(other) {
-        this._position.delta = other;
+    addPos(posVector) {
+        (defined(this._position)) ? this._position.addTo(posVector) : this._position = posVector;
     }
-    set velIns(other) {
-        this._velocity.instant = other;
+    addVel(velVector) {
+        (defined(this._velocity)) ? this._velocity.addTo(velVector) : this._velocity = velVector;
     }
-    set velDel(other) {
-        this._velocity.delta = other;
+    addAcc(accVector) {
+        (defined(this._acceleration)) ? this._acceleration.addTo(accVector) : this._acceleration = accVector;
     }
 
-    add(other) {
-        this.addPosIns(other.posIns);
-        this.addPosDel(other.posDel);
-        this.addVelIns(other.velIns);
-        this.addVelDel(other.velDel);
+    clear() {
+        this.clearPos();
+        this.clearVel();
+        this.clearAcc();
     }
-    addPosIns(change) {
-        this._position.instant.addTo(change);
+    clearPos() {
+        if (defined(this._position)) {
+            this._position.clear();
+        }
     }
-    addPosDel(change) {
-        this._position.delta.addTo(change);
+    clearVel() {
+        if (defined(this._velocity)) {
+            this._velocity.clear();
+        }
     }
-    addVelIns(change) {
-        this._velocity.instant.addTo(change);
-    }
-    addVelDel(change) {
-        this._velocity.delta.addTo(change);
+    clearAcc() {
+        if (defined(this._acceleration)) {
+            this._acceleration.clear();
+        }
     }
 
     toString() {
-        return this.printPos() + "\n" + this.printVel();
-    }
-    printPos() {
-        return "Changes in Position --- instant: " + this._position.instant + " and delta: " + this._position.delta;
-    }
-    printVel() {
-        return "Changes in Velocity --- instant: " + this._velocity.instant + " and delta: " + this._velocity.delta;
+        return ("Changes in position = " + this._position.toString() + 
+                ", velocity = " + this._velocity.toString() + 
+                ", and acceleration = " + this._acceleration.toString() );
     }
 }
 
@@ -143,8 +117,8 @@ class Circle {
         return this._radius;
     }
 
-    addPos(change) {
-        this._position.addTo(change);
+    toString() {
+        return "Circle radius = " + this._radius + " and position = " + this._position.toString();
     }
 }
 
@@ -208,7 +182,7 @@ class GameObject {
         this._velocity.addTo(change);
     }
     addPos(change) {
-        this._circle.addPos(change);
+        this._circle.pos.addTo(change);
     }
     behave() {
         return new ChangesPosVel();

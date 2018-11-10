@@ -602,3 +602,29 @@ class collisionGroup {
             this._gameObjectsNext.push(gameObject);
         }
     }
+
+// SEGMENT -----------------------------------------------------------------------------------------------
+// Constructs line segment from two Vectors as endpoints
+class Segment {
+    constructor(position1, position2) {
+        this._position1 = position1;
+        this._position2 = position2;
+    }
+
+    get pos1() {
+        return this._position1;
+    }
+    get pos2() {
+        return this._position2;
+    }
+    get vector() {
+        return new Vector( this._position2.x - this._position1.x, this._position2.y - this._position1.y );
+    }
+    get mag() {
+        return this.vector.mag;
+    }
+
+    toString() {
+        return "Endpoints of segment are " + this._position1.toString() + " and " + this._position2.toString();
+    }
+}

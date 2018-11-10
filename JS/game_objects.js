@@ -41,7 +41,7 @@ class Player extends GameObject {
 
         // add delta velocity in direction
         if (angle > -1) {
-            changes.addVelDel(vectorToXY(this.traits.move.accel, angle));
+            changes.addAcc( vectorToXY(this.traits.move.accel, angle) );
         }
 
         return changes;
@@ -53,7 +53,7 @@ class Player extends GameObject {
     // locks speed at maximum
     reduce(changes) {
         if (this.vel.mag > this.traits.move.maxSpeed) {
-            changes.addVelIns(vectorToXY(this.vel.mag - this.traits.move.maxSpeed, -this.vel.angle));
+            changes.addVel( vectorToXY(this.vel.mag - this.traits.move.maxSpeed, -this.vel.angle) );
         }
         return changes;
     }
