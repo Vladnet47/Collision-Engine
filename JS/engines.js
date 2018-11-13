@@ -2,6 +2,8 @@ class NarrowCollisionEngine {
     constructor() {
         this._size;
 
+        this._colObjects;
+
         // all indeces match up to eachother (like a matrix)
         this._gameObjects; // list of the gameObjects involved in collisions
         this._iGameObjects; // list of indeces where the gameObjects are stored in the environment (used to match them later)
@@ -271,7 +273,7 @@ class NarrowCollisionEngine {
     }
 
     // returns index of this._iGameObjects
-    _getIndex(i, low, high) {
+    _getIndex(i, low, high) { // -------------------------------------------------------------------------------------
         let mid = Math.floor((high + low + 1) / 2);
         let current = this._iGameObjects[mid];
 
@@ -286,7 +288,7 @@ class NarrowCollisionEngine {
 
     // calcultes impulse between two objects
     // returns an object in the form: { current: update, other: update }
-    _calculateImpulse(curPos, othPos, curVel, othVel, curMass, othMass, t) {
+    _calculateImpulse(curPos, othPos, curVel, othVel, curMass, othMass) {
         // find radius vector, from other to current
         let dist = new Vector(curPos.x - othPos.x, curPos.y - othPos.y);
 
@@ -294,8 +296,8 @@ class NarrowCollisionEngine {
         let massSum = curMass + othMass;
 
         // find projection of velocities onto radius vector
-        let projCur = this._projectVector(curVel, dist);
-        let projOth = this._projectVector(othVel, dist);
+        let projCur = projectVector(curVel, dist);
+        let projOth = projectVector(othVel, dist);
 
         // find the respective components from equation
         // v1 * (m1 - m2) / (m1 + m2)    +    v2 * (2 * m1) / (m1 + m2)    =    final v1
@@ -323,10 +325,95 @@ class NarrowCollisionEngine {
         return { current: curChange , other: othChange };
     }
 
-    // projects v1 onto v2
-    _projectVector(v1, v2) {
-        let dot = v1.x * v2.x + v1.y * v2.y;
-        let projection = dot / ( Math.pow(v2.x, 2) + Math.pow(v2.y, 2) ); 
-        return new Vector(v2.x * projection, v2.y * projection);
+
+    _propogateMain() {
+        for (let i = 0; i < this._size; i++) {
+            let currentObj = this._colObjects[i];
+            let current = currentObj.object;
+            let curUpdatedPos = current.add(currentObj.change.pos);
+
+            // if object did not move, do not calculate anything 
+            if (current.vel == 0) {
+                continue;
+            }
+
+            let propogated = [currentObj.index];
+            let colsI = currentObj.cols;
+
+            for (let j = 0; j < colsI.length; j++) {
+                let colI = colsI[j];
+                let otherObj = this._colObjects[ this._getIndex(colI) ];
+                let other = otherObj.object;
+                let othUpdatedPos = other.add(otherObj.change.pos);
+
+                let impulse = this._calculateImpulse(curUpdatedPos, othUpdatedPos, current.vel, other.vel, current.mass, other.mass);
+                this._propogate(otherObj, impulse.other, propogated);
+                propogated.push(otherObj.index);
+                this._propogate(currentObj, impulse.current, propogated);
+            }
+        }
+    }
+
+    // takes a velocity vector and a list of already propogated indeces
+    // propogated the velocity vector to all unpropogated active collisions
+    _propogate(currentObj, velVector, propogated) {
+        currentObj.addVel(velVector);
+        propogated.push(currentObj.index);
+        let current = currentObj.object;
+
+        let colsI = this._getUnpropogated(propogated);
+
+        for (let i = 0; i < colsI; i++) {
+            let colI = colsI[i];
+
+            let otherObj = this._colObjects[ this._getIndex(colI) ];
+            let other = otherObj.object;
+
+            let radiusVector = new Vector (other.x - current.x, other.y - current.y);
+            let projVector = projectVector(velVector, radiusVector);
+            let propogatedCopy = this._makePropCopy(propogated, colsI, colI);
+
+            this._propogate(other, projVector, propogatedCopy);
+        }
+    }
+
+    // returns a list of active collisions that have not been already propogated
+    _getUnpropogated(current, propogated) {
+        let cols = [];
+        let found = false;
+
+        for (let i = 0; i < current.cols.length; i++) {
+            let colI = current.cols[i];
+            for (let j = 0; j < propogated.length; j++) {
+                // if indeces are the same, then curI has already been propogated
+                if (colI == propogated[j]) {
+                    found = true;
+                    break;
+                } 
+            }
+
+            // if active collision was not already propogated, put it in the list
+            if (!found) {
+                cols.push(colI);
+            }
+        }
+
+        return cols;
+    }
+
+    // makes a new array that includes all of the indeces in propogated and cols, excluding col from cols
+    _makePropCopy(propogated, colsI, colI) {
+        let copy = [];
+        for (let i = 0; i < propogated.length; i++) {
+            copy.push(propogated[i]);
+        }
+
+        for (let i = 0; i < colsI.length; i++) {
+            if (colsI[i] != colI) {
+                copy.push(colsI[i]);
+            }
+        }
+
+        return copy;
     }
 }

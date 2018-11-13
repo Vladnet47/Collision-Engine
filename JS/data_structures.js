@@ -105,6 +105,45 @@ class ChangesPosVel {
     }
 }
 
+class CollisionObject {
+    constructor(gameObject, envirIndex) {
+        this._gameObject = gameObject;
+        this._index = envirIndex;
+
+        this._tValues = []; // all potential tValues of collisions
+        this._indeces = []; // all indeces of collisions
+
+        this._indecesActive = []; // all final collisions
+
+        this._change = new ChangesPosVel();
+    }
+
+    get object() {
+        return this._gameObject;
+    }
+    get index() {
+        return this._index;
+    }
+    get tValues() {
+        return this._tValues;
+    }
+    get indeces() {
+        return this._indeces;
+    }
+    get cols() {
+        return this._indecesActive;
+    }
+    get change() {
+        return this._change;
+    }
+
+    addPos(posVector) {
+        this._change.addPos(posVector);
+    }
+    addVel(velVector) {
+        this._change.addVel(velVector);
+    }
+}
 
 class Circle {
     constructor(position, radius) {

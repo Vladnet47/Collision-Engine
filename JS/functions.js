@@ -42,6 +42,13 @@ function multiplyVector(vec, scalar) {
     return new Vector( vec.x * scalar, vec.y * scalar );
 }
 
+// projects v1 onto v2
+function projectVector(v1, v2) {
+    let dot = v1.x * v2.x + v1.y * v2.y;
+    let projection = dot / ( Math.pow(v2.x, 2) + Math.pow(v2.y, 2) ); 
+    return new Vector(v2.x * projection, v2.y * projection);
+}
+
 // Returns the two dimensional cross product of given vectors
 function vectorCross (vec1, vec2) {
     return vec1.x * vec2.y - vec1.y * vec2.x;
