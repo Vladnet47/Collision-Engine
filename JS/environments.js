@@ -52,6 +52,30 @@ class Environment {
         this._narrowColEngine.toggleBound(this._collisionProps.width, this._collisionProps.height);
     }
 
+    initTest() {
+        let gam1 = new GameObject(new Circle(new Vector(100, 300), 60), 'rgb(51, 204, 51)', new Vector(100, 0), 100);
+        gam1.collidable = true;
+        gam1.physics = true;
+
+        let gam2 = new GameObject(new Circle(new Vector(350, 300), 60), 'rgb(51, 204, 51)', new Vector(0, 0), 10);
+        gam2.collidable = true;
+        gam2.physics = true;
+
+        let gam3 = new GameObject(new Circle(new Vector(600, 300), 60), 'rgb(51, 204, 51)', new Vector(-100, 0), 10);
+        gam3.collidable = true;
+        gam3.physics = true;
+
+        this._gameObjectsNext.push(gam1);
+        this._gameObjectsNext.push(gam2);
+        this._gameObjectsNext.push(gam3);
+        this._nObjects = this._gameObjectsNext.length;
+
+        this._narrowColEngine = new NarrowCollisionEngine();
+        this._narrowColEngine.toggleBound(this._collisionProps.width, this._collisionProps.height);
+
+        //pause = true;
+    }
+
     // Calculates the next position of each GameObject in the environment
     update() {
         this._gameObjectsCurrent = this._gameObjectsNext;
@@ -157,12 +181,13 @@ class Environment {
         }
 
         // handle collisions
-        let listChanges = this._narrowColEngine.getChanges();
-        for (let k = 0; k < listChanges.length; k++) {
-            let index = listChanges[k].index;
-            let change = listChanges[k].change;
+        let result = this._narrowColEngine.getChanges();
+        let indeces = result.indeces;
+        let changes = result.changes;
+        let size = result.size;
 
-            changesCurrent[index].add(change);
+        for (let i = 0; i < size; i++) {
+            changesCurrent[ indeces[i] ].add( changes[i] );
         }
     }
 

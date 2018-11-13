@@ -23,6 +23,8 @@ class Vector {
     add(other) {
         if (defined(other)) {
             return new Vector(this._x + other.x, this._y + other.y);
+        } else {
+            return new Vector(this._x, this._y);
         }
     }
     // adds other vector to this vector
@@ -30,7 +32,7 @@ class Vector {
         if (defined(other)) {
             this._x += other.x;
             this._y += other.y;
-        }
+        } 
     }
     clear() {
         this._x = 0;
@@ -142,6 +144,9 @@ class GameObject {
     }
     get y() {
         return this._circle.pos.y + this._circle.rad;
+    }
+    get pos() {
+        return this._circle.pos.add(new Vector(this._circle.rad, this._circle.rad));
     }
     get rad() {
         return this._circle.rad;
