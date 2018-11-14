@@ -1,7 +1,6 @@
 class NarrowCollisionEngine {
     constructor() {
         this._size;
-
         this._colObjects;
 
         // bounding rectangle
@@ -17,41 +16,39 @@ class NarrowCollisionEngine {
         }
     }
 
-    // empties collisions and indeces
+    // resets the collision object array
     reset() {
         this._size = 0;
-
         this._colObjects = [];
     }
 
-    // returns true if current and other intersect, and updates collisions and indeces.
-    // by default, tests for circle-circle intersection
+    // records collision if it occurs
+    // returns true if collision occurs, false if it doesn't
     check(i, current, j, other) {
         // find distance from gameObject and other, direction from gameObject to other
-        let dist = new Vector(other.x - current.x, other.y - current.y);
-        
-        // find velocities of current and other, times delta time
-        let velGam = multiplyVector(current.vel, deltaT);
-        let velOth = multiplyVector(other.vel, deltaT);
+        let dist = magnitude(other.x - current.x, other.y - current.y);
         
         // find sum of radii
         let radSum = current.rad + other.rad;
 
+        // find velocities of current and other, times delta time
+        let curVel = multiplyVector(current.vel, deltaT);
+        let othVel = multiplyVector(other.vel, deltaT);
+
         // if the objects are too far apart, do not check for colision
-        if (dist.mag > radSum + velGam.mag + velOth.mag) {
+        if (dist > radSum + curVel.mag + othVel.mag) {
             return false;
         }
 
         // calculate time of intersection, which represents a percentage of current velocity
-        let t = this._calculateT(current.pos, other.pos, current.vel, other.vel, radSum);
+        let t = this._calculateT(current.pos, other.pos, curVel, othVel, radSum);
 
         // if intersection occurs within the current velocities, record both objects
         if (t >= 0 && t <= 1) {
-            if (current.mass == 1 || current.mass == 2 || current.mass == 3) {
-                current.mass;
-            }
-            this._record(i, j, current, t);
-            this._record(j, i, other, t);
+            let curI = this._record(i, current);
+            let othI = this._record(j, other);
+            this._colObjects[curI].addCol(t, othI);
+            this._colObjects[othI].addCol(t, curI);
             return true;
         }
         return false;
@@ -60,67 +57,73 @@ class NarrowCollisionEngine {
     // if collision occurs, returns the time of collision, relative to the starting position (t is between 0 and 1)
     // otherwise, return -1;
     _calculateT(curPos, othPos, curVel, othVel, radSum) {
-        let velDiffX = curVel.x * deltaT - othVel.x * deltaT;
-        let velDiffY = curVel.y * deltaT - othVel.y * deltaT;
+        let velDiffX = curVel.x - othVel.x;
+        let velDiffY = curVel.y - othVel.y;
         let posDiffX = othPos.x - curPos.x;
         let posDiffY = othPos.y - curPos.y;
 
+        // quadratic formula
         let a = Math.pow(velDiffX, 2) + Math.pow(velDiffY, 2);
         let b = -2 * (posDiffX * velDiffX + posDiffY * velDiffY);
         let c = Math.pow(posDiffX, 2) + Math.pow(posDiffY, 2) - Math.pow(radSum, 2);
         let discriminant = Math.pow(b, 2) - 4 * a * c;
 
+        let result = -1;
         if (discriminant >= 0) {
             let sqrtDisc = Math.sqrt(discriminant);
+            let denom = 2 * a;
 
-            let t1 = (-b + sqrtDisc) / (2 * a);
-            let t2 = (-b - sqrtDisc) / (2 * a);
+            let t1 = round( (-b + sqrtDisc) / denom, 4 );
+            let t2 = round( (-b - sqrtDisc) / denom, 4 );
 
-            return (t1 > t2) ? round(t2, 4) : round(t1, 4);
+            (t1 > t2) ? result = t2 : result = t1;
         }
-        return -1;
+        return result;
     }
 
-    _record(indexCur, indexOth, current, t) { // ------------------------------------------------ trace this
-        this._recordHelper(indexCur, indexOth, current, t, 0, this._size - 1);
+    // binary insert, colObjects is ordered by environment index
+    _record(indexCur, current) {
+        return this._recordHelper(indexCur, current, 0, this._size - 1);
     }
 
-    _recordHelper(indexCur, indexOth, current, t, low, high) {
+    _recordHelper(indexCur, current, low, high) {
         let mid = Math.floor((high + low + 1) / 2);
 
-        if (mid > high) { // if belongs at the very end
+        if (mid > high) {
             let currentObj = new CollisionObject(current, indexCur);
-            currentObj.addCol(t, indexOth);
-
             this._colObjects.splice(mid, 0, currentObj);
             this._size++;
-        } else { // if belongs somewhere in the middle
+
+            return mid;
+        } else {
             let checkObj = this._colObjects[mid];
             let checkIndex = checkObj.index;
 
             if (indexCur == checkIndex) { 
-                checkObj.addCol(t, indexOth);
+                return mid;
             } else if (indexCur < checkIndex) {
-                this._recordHelper(indexCur, indexOth, current, t, low, mid - 1);
+                return this._recordHelper(indexCur, current, low, mid - 1);
             } else {
-                this._recordHelper(indexCur, indexOth, current, t, mid + 1, high);
+                return this._recordHelper(indexCur, current, mid + 1, high);
             }
         }
     }
 
     // returns a list of changes for all objects that underwent collisions
     getChanges() {
-        // get the changes for each object in collision
+        // get the position changes for each object in collision
         for (let i = 0; i < this._size; i++) {
             this._updatePosition(i);
         }
 
+        // get the velocity changes for each object in collision
         let initialKE = this._calculateKE();
         for (let i = 0; i < this._size; i++) {
             this._updateVelocity(i);
         }
         let finalKE = this._calculateKE();
 
+        // for debugging purposes - if kinetic energy not conserved, impulse was not properly distributed
         if (Math.round(initialKE) != Math.round(finalKE)) {
             console.log("Kinetic Energy not conserved");
         }
@@ -138,7 +141,7 @@ class NarrowCollisionEngine {
 
         // get the shortest collision for current, and smallest t value
         let curShortestCol = this._getShortestCol(curI);
-        let othI = this._getIndex(curShortestCol.col);
+        let othI = curShortestCol.col;
         let curT = curShortestCol.t;
 
         // get the smallest t value for other
@@ -158,7 +161,8 @@ class NarrowCollisionEngine {
         if (otherObj.updated) {
             // calculate collision assuming other's updated position and zero velocity
             let othUpdatedPos = other.pos.add( otherObj.change.pos );
-            let newT = this._calculateT(current.pos, othUpdatedPos, current.vel, new Vector(0, 0), current.rad + other.rad);
+            let radSum = current.rad + other.rad;
+            let newT = this._calculateT(current.pos, othUpdatedPos, multiplyVector(current.vel, deltaT), new Vector(0, 0), radSum);
             
             // if current still collides with other, update current
             if (newT >= 0 && newT <= 1) {
@@ -167,10 +171,9 @@ class NarrowCollisionEngine {
                 // update the position of current
                 currentObj.addPos( curPosChange );
 
-                // POSITION DEBUGGER --------------------------------------------------------------------------------------
-                // currentObj.addVel( multiplyVector(current.vel, -1) );
-                currentObj.markActive(this._colObjects[othI].index);
-                otherObj.markActive(this._colObjects[curI].index);
+                // identify the active collisions
+                currentObj.markActive(othI);
+                otherObj.markActive(curI);
 
                 currentObj.markUpdated();
             } 
@@ -193,18 +196,13 @@ class NarrowCollisionEngine {
             currentObj.addPos( curPosChange );
             otherObj.addPos( othPosChange );
 
-            // TEMPORARY DEBUGGER --------------------------------------------------------------------------------------
-            // currentObj.addVel( multiplyVector(current.vel, -1) );
-            // otherObj.addVel( multiplyVector(other.vel, -1) );
-            
-            currentObj.markActive(this._colObjects[othI].index);
-            otherObj.markActive(this._colObjects[curI].index);
+            // identify the active collisions
+            currentObj.markActive(othI);
+            otherObj.markActive(curI);
 
             // mark both current and other as updated
             currentObj.markUpdated();
             otherObj.markUpdated();
-
-            
         } 
     }
 
@@ -234,25 +232,6 @@ class NarrowCollisionEngine {
             if (indeces[i] == othI) {
                 currentObj.removeCol(i);
             }
-        }
-    }
-
-    _getIndex(i) {
-        return this._getIndexHelper(i, 0, this._size - 1);
-    }
-
-    // returns index of this._iGameObjects
-    _getIndexHelper(i, low, high) { // -------------------------------------------------------------------------------------
-        let mid = Math.floor((high + low + 1) / 2);
-        let checkObj = this._colObjects[mid];
-        let checkIndex = checkObj.index;
-
-        if (i == checkIndex) {
-            return mid;
-        } else if (i < checkIndex) {
-            return this._getIndexHelper(i, low, mid - 1);
-        } else {
-            return this._getIndexHelper(i, mid + 1, high);
         }
     }
 
@@ -306,17 +285,17 @@ class NarrowCollisionEngine {
             return;
         }
 
-        let propogated = [currentObj.index];
+        let propogated = [curI];
         let colsI = currentObj.cols;
 
         for (let j = 0; j < colsI.length; j++) {
             let colI = colsI[j];
-            let otherObj = this._colObjects[ this._getIndex(colI) ];
+            let otherObj = this._colObjects[ colI ];
             let other = otherObj.object;
             let othUpdatedPos = other.pos.add(otherObj.change.pos);
 
             let impulse = this._calculateImpulse(curUpdatedPos, othUpdatedPos, current.vel, other.vel, current.mass, other.mass);
-            this._propogateHelper(otherObj, impulse.other, propogated);
+            this._propogateHelper(colI, otherObj, impulse.other, propogated);
             // propogated.push(otherObj.index);
             // this._propogateHelper(currentObj, impulse.current, propogated);
         }
@@ -324,9 +303,9 @@ class NarrowCollisionEngine {
 
     // takes a velocity vector and a list of already propogated indeces
     // propogated the velocity vector to all unpropogated active collisions
-    _propogateHelper(currentObj, velVector, propogated) {
+    _propogateHelper(curI, currentObj, velVector, propogated) {
         currentObj.addVel(velVector);
-        propogated.push(currentObj.index);
+        propogated.push(curI);
         let current = currentObj.object;
 
         let colsI = this._getUnpropogated(currentObj, propogated);
@@ -334,7 +313,7 @@ class NarrowCollisionEngine {
         for (let i = 0; i < colsI.length; i++) {
             let colI = colsI[i];
 
-            let otherObj = this._colObjects[ this._getIndex(colI) ];
+            let otherObj = this._colObjects[ colI ];
             let other = otherObj.object;
 
             let radiusVector = new Vector (other.x - current.x, other.y - current.y);

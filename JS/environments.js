@@ -56,13 +56,11 @@ class Environment {
         let gam1 = this._createTestObject(new Vector(100, 400), new Vector(50, 0), 1);
         let gam2 = this._createTestObject(new Vector(500, 400), new Vector(-50, 0), 1);
         let gam3 = this._createTestObject(new Vector(300, 400), new Vector(0, 0), 1);
-        let gam4 = this._createTestObject(new Vector(300, 200), new Vector(0, 50), 4);
-        let gam5 = this._createTestObject(new Vector(700, 250), new Vector(-200, 0), 5);
-        let gam6 = this._createTestObject(new Vector(100, 100), new Vector(30, 100), 6);
-        let gam7 = this._createTestObject(new Vector(800, 150), new Vector(0, 50), 7);
-        let gam8 = this._createTestObject(new Vector(800, 450), new Vector(0, -50), 8);
-
-
+        let gam4 = this._createTestObject(new Vector(300, 200), new Vector(0, 50), 1);
+        let gam5 = this._createTestObject(new Vector(700, 250), new Vector(-100, 0), 1);
+        let gam6 = this._createTestObject(new Vector(100, 100), new Vector(30, 100), 1);
+        let gam7 = this._createTestObject(new Vector(800, 150), new Vector(0, 50), 1);
+        let gam8 = this._createTestObject(new Vector(800, 450), new Vector(0, -50), 1);
 
         this._gameObjectsNext.push(gam1);
         this._gameObjectsNext.push(gam2);
@@ -70,10 +68,8 @@ class Environment {
         this._gameObjectsNext.push(gam4);
         this._gameObjectsNext.push(gam5);
         this._gameObjectsNext.push(gam6);
-        //this._gameObjectsNext.push(gam7);
-        //this._gameObjectsNext.push(gam8);
-
-
+        this._gameObjectsNext.push(gam7);
+        this._gameObjectsNext.push(gam8);
 
         this._nObjects = this._gameObjectsNext.length;
 
@@ -84,6 +80,10 @@ class Environment {
     }
 
     initTest2() {
+        let player = new Player(new Circle(new Vector(430, 100), 30), 'rgb(0, 153, 255)', new Vector(0, 0), 20);
+        player.collidable = true;
+        player.physics = true;
+
         let gam1 = this._createTestObject2(new Vector(100, 400), new Vector(50, 0), 30, 10);
         let gam2 = this._createTestObject2(new Vector(500, 400), new Vector(-50, 0), 30, 10);
         let gam3 = this._createTestObject2(new Vector(300, 400), new Vector(0, 0), 60, 100);
@@ -93,6 +93,7 @@ class Environment {
         let gam7 = this._createTestObject2(new Vector(800, 150), new Vector(0, 50), 100, 300);
         let gam8 = this._createTestObject2(new Vector(800, 450), new Vector(0, -50), 60, 100);
 
+        this._gameObjectsNext.push(player);
         this._gameObjectsNext.push(gam1);
         this._gameObjectsNext.push(gam2);
         this._gameObjectsNext.push(gam3);
