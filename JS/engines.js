@@ -313,14 +313,14 @@ class NarrowCollisionEngine {
         for (let i = 0; i < colsI.length; i++) {
             let colI = colsI[i];
 
-            let otherObj = this._colObjects[ colI ];
+            let otherObj = this._colObjects[colI];
             let other = otherObj.object;
 
             let radiusVector = new Vector (other.x - current.x, other.y - current.y);
             let projVector = projectVector(velVector, radiusVector);
             let propogatedCopy = this._makePropCopy(propogated, colsI, colI);
 
-            this._propogateHelper(otherObj, projVector, propogatedCopy);
+            this._propogateHelper(colI, otherObj, projVector, propogatedCopy);
         }
     }
 
@@ -364,9 +364,6 @@ class NarrowCollisionEngine {
 
         return copy;
     }
-
-
-
 
     // DEBUGGING
     _calculateKE() {

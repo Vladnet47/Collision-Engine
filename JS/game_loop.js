@@ -67,7 +67,7 @@ $(document).ready(function() {
     let context = canvas.getContext('2d');
     
     let envir = new Environment(canvas);
-    envir.initTest2();
+    envir.initTest3();
 
     loop();
 
@@ -81,7 +81,6 @@ $(document).ready(function() {
         if (pause && events.spaceDown) { 
             pause = false;
         }
-
 
         if (!pause) {
             envir.update();

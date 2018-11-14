@@ -3,7 +3,6 @@ function defined(value) {
     return (typeof value !== "undefined");
 }
 
-
 // Returns the value rounded to the nearest decimal
 function round(value, decimal) {
     return Math.round(value * Math.pow(10, decimal)) / Math.pow(10, decimal);

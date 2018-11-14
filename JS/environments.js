@@ -52,15 +52,15 @@ class Environment {
         this._narrowColEngine.toggleBound(this._collisionProps.width, this._collisionProps.height);
     }
 
-    initTest() {
-        let gam1 = this._createTestObject(new Vector(100, 400), new Vector(50, 0), 1);
-        let gam2 = this._createTestObject(new Vector(500, 400), new Vector(-50, 0), 1);
-        let gam3 = this._createTestObject(new Vector(300, 400), new Vector(0, 0), 1);
-        let gam4 = this._createTestObject(new Vector(300, 200), new Vector(0, 50), 1);
-        let gam5 = this._createTestObject(new Vector(700, 250), new Vector(-100, 0), 1);
-        let gam6 = this._createTestObject(new Vector(100, 100), new Vector(30, 100), 1);
-        let gam7 = this._createTestObject(new Vector(800, 150), new Vector(0, 50), 1);
-        let gam8 = this._createTestObject(new Vector(800, 450), new Vector(0, -50), 1);
+    initTest1() {
+        let gam1 = this._createTestObject2(new Vector(100, 400), new Vector(50, 0), 50, 1);
+        let gam2 = this._createTestObject2(new Vector(500, 400), new Vector(-50, 0), 50, 1);
+        let gam3 = this._createTestObject2(new Vector(300, 400), new Vector(0, 0), 50, 1);
+        let gam4 = this._createTestObject2(new Vector(300, 200), new Vector(0, 50), 50, 1);
+        let gam5 = this._createTestObject2(new Vector(700, 250), new Vector(-100, 0), 50, 1);
+        let gam6 = this._createTestObject2(new Vector(100, 100), new Vector(30, 100), 50, 1);
+        let gam7 = this._createTestObject2(new Vector(800, 150), new Vector(0, 50), 50, 1);
+        let gam8 = this._createTestObject2(new Vector(800, 450), new Vector(0, -50), 50, 1);
 
         this._gameObjectsNext.push(gam1);
         this._gameObjectsNext.push(gam2);
@@ -111,12 +111,23 @@ class Environment {
         pause = true;
     }
 
-    _createTestObject(position, velocity, mass) {
-        let obj = new GameObject(new Circle(position, 50), 'rgb(51, 204, 51)', velocity, mass);
-        obj.collidable = true;
-        obj.physics = true;
+    initTest3() {
+        let gam1 = this._createTestObject2(new Vector(100, 100), new Vector(50, 50), 30, 10);
+        let gam2 = this._createTestObject2(new Vector(500, 100), new Vector(-50, 50), 30, 10);
+        let gam3 = this._createTestObject2(new Vector(100, 500), new Vector(50, -50), 30, 10);
+        let gam4 = this._createTestObject2(new Vector(500, 500), new Vector(-50, -50), 30, 10);
 
-        return obj;
+        this._gameObjectsNext.push(gam1);
+        this._gameObjectsNext.push(gam2);
+        this._gameObjectsNext.push(gam3);
+        this._gameObjectsNext.push(gam4);
+
+        this._nObjects = this._gameObjectsNext.length;
+
+        this._narrowColEngine = new NarrowCollisionEngine();
+        this._narrowColEngine.toggleBound(this._collisionProps.width, this._collisionProps.height);
+
+        pause = true;
     }
 
     _createTestObject2(position, velocity, size, mass) {
