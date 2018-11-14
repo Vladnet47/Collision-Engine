@@ -53,27 +53,77 @@ class Environment {
     }
 
     initTest() {
-        let gam1 = new GameObject(new Circle(new Vector(100, 300), 60), 'rgb(51, 204, 51)', new Vector(100, 0), 100);
-        gam1.collidable = true;
-        gam1.physics = true;
+        let gam1 = this._createTestObject(new Vector(100, 400), new Vector(50, 0), 1);
+        let gam2 = this._createTestObject(new Vector(500, 400), new Vector(-50, 0), 1);
+        let gam3 = this._createTestObject(new Vector(300, 400), new Vector(0, 0), 1);
+        let gam4 = this._createTestObject(new Vector(300, 200), new Vector(0, 50), 4);
+        let gam5 = this._createTestObject(new Vector(700, 250), new Vector(-200, 0), 5);
+        let gam6 = this._createTestObject(new Vector(100, 100), new Vector(30, 100), 6);
+        let gam7 = this._createTestObject(new Vector(800, 150), new Vector(0, 50), 7);
+        let gam8 = this._createTestObject(new Vector(800, 450), new Vector(0, -50), 8);
 
-        let gam2 = new GameObject(new Circle(new Vector(350, 300), 60), 'rgb(51, 204, 51)', new Vector(0, 0), 10);
-        gam2.collidable = true;
-        gam2.physics = true;
 
-        let gam3 = new GameObject(new Circle(new Vector(600, 300), 60), 'rgb(51, 204, 51)', new Vector(-100, 0), 10);
-        gam3.collidable = true;
-        gam3.physics = true;
 
         this._gameObjectsNext.push(gam1);
         this._gameObjectsNext.push(gam2);
         this._gameObjectsNext.push(gam3);
+        this._gameObjectsNext.push(gam4);
+        this._gameObjectsNext.push(gam5);
+        this._gameObjectsNext.push(gam6);
+        //this._gameObjectsNext.push(gam7);
+        //this._gameObjectsNext.push(gam8);
+
+
+
         this._nObjects = this._gameObjectsNext.length;
 
         this._narrowColEngine = new NarrowCollisionEngine();
         this._narrowColEngine.toggleBound(this._collisionProps.width, this._collisionProps.height);
 
-        //pause = true;
+        pause = true;
+    }
+
+    initTest2() {
+        let gam1 = this._createTestObject2(new Vector(100, 400), new Vector(50, 0), 30, 10);
+        let gam2 = this._createTestObject2(new Vector(500, 400), new Vector(-50, 0), 30, 10);
+        let gam3 = this._createTestObject2(new Vector(300, 400), new Vector(0, 0), 60, 100);
+        let gam4 = this._createTestObject2(new Vector(300, 200), new Vector(0, 50), 10, 5);
+        let gam5 = this._createTestObject2(new Vector(700, 250), new Vector(-200, 0), 40, 80);
+        let gam6 = this._createTestObject2(new Vector(100, 100), new Vector(30, 100), 40, 80);
+        let gam7 = this._createTestObject2(new Vector(800, 150), new Vector(0, 50), 100, 300);
+        let gam8 = this._createTestObject2(new Vector(800, 450), new Vector(0, -50), 60, 100);
+
+        this._gameObjectsNext.push(gam1);
+        this._gameObjectsNext.push(gam2);
+        this._gameObjectsNext.push(gam3);
+        this._gameObjectsNext.push(gam4);
+        this._gameObjectsNext.push(gam5);
+        this._gameObjectsNext.push(gam6);
+        this._gameObjectsNext.push(gam7);
+        this._gameObjectsNext.push(gam8);
+
+        this._nObjects = this._gameObjectsNext.length;
+
+        this._narrowColEngine = new NarrowCollisionEngine();
+        this._narrowColEngine.toggleBound(this._collisionProps.width, this._collisionProps.height);
+
+        pause = true;
+    }
+
+    _createTestObject(position, velocity, mass) {
+        let obj = new GameObject(new Circle(position, 50), 'rgb(51, 204, 51)', velocity, mass);
+        obj.collidable = true;
+        obj.physics = true;
+
+        return obj;
+    }
+
+    _createTestObject2(position, velocity, size, mass) {
+        let obj = new GameObject(new Circle(position, size), 'rgb(51, 204, 51)', velocity, mass);
+        obj.collidable = true;
+        obj.physics = true;
+
+        return obj;
     }
 
     // Calculates the next position of each GameObject in the environment
@@ -182,12 +232,9 @@ class Environment {
 
         // handle collisions
         let result = this._narrowColEngine.getChanges();
-        let indeces = result.indeces;
-        let changes = result.changes;
-        let size = result.size;
 
-        for (let i = 0; i < size; i++) {
-            changesCurrent[ indeces[i] ].add( changes[i] );
+        for (let i = 0; i < result.length; i++) {
+            changesCurrent[ result[i].index ].add( result[i].change );
         }
     }
 

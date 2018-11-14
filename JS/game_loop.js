@@ -67,7 +67,7 @@ $(document).ready(function() {
     let context = canvas.getContext('2d');
     
     let envir = new Environment(canvas);
-    envir.initTest();
+    envir.initTest2();
 
     loop();
 

@@ -113,6 +113,7 @@ class CollisionObject {
         this._tValues = []; // all potential tValues of collisions
         this._indeces = []; // all indeces of collisions
 
+        this._updated = false; // if shortest collision was found
         this._indecesActive = []; // all final collisions
 
         this._change = new ChangesPosVel();
@@ -130,6 +131,9 @@ class CollisionObject {
     get indeces() {
         return this._indeces;
     }
+    get updated() {
+        return this._updated;
+    }
     get cols() {
         return this._indecesActive;
     }
@@ -142,6 +146,23 @@ class CollisionObject {
     }
     addVel(velVector) {
         this._change.addVel(velVector);
+    }
+
+    addCol(t, index) {
+        this._tValues.push(t);
+        this._indeces.push(index);
+    }
+    removeCol(index) {
+        this._tValues.splice(index, 1);
+        this._indeces.splice(index, 1);
+    }
+
+    markActive(index) {
+        this._indecesActive.push(index);
+    }
+
+    markUpdated() {
+        this._updated = true;
     }
 }
 

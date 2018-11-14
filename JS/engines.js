@@ -4,15 +4,6 @@ class NarrowCollisionEngine {
 
         this._colObjects;
 
-        // all indeces match up to eachother (like a matrix)
-        this._gameObjects; // list of the gameObjects involved in collisions
-        this._iGameObjects; // list of indeces where the gameObjects are stored in the environment (used to match them later)
-        this._tValues; // list of times for shortest collisions (between 0 and 1, 1 being the full velocity of gameObject)
-        this._iCollisions; // list of indeces of shortest collisions for each gameObject (index points to another gameObject)
-        this._updated; // list of boolean values that indicate that gameObject is updated 
-
-        this._changes; 
-
         // bounding rectangle
         this._bound = { on: false, width: 0, height: 0 };
     }
@@ -30,12 +21,7 @@ class NarrowCollisionEngine {
     reset() {
         this._size = 0;
 
-        this._gameObjects = [];
-        this._iGameObjects = [];
-        this._tValues = [];
-        this._iCollisions = [];
-        this._updated = []; 
-        this._changes = [];
+        this._colObjects = [];
     }
 
     // returns true if current and other intersect, and updates collisions and indeces.
@@ -61,8 +47,11 @@ class NarrowCollisionEngine {
 
         // if intersection occurs within the current velocities, record both objects
         if (t >= 0 && t <= 1) {
-            this._record(i, j, current, t, 0, this._size - 1);
-            this._record(j, i, other, t, 0, this._size - 1);
+            if (current.mass == 1 || current.mass == 2 || current.mass == 3) {
+                current.mass;
+            }
+            this._record(i, j, current, t);
+            this._record(j, i, other, t);
             return true;
         }
         return false;
@@ -92,197 +81,178 @@ class NarrowCollisionEngine {
         return -1;
     }
 
-    _record(indexCur, indexOth, current, t, low, high) {
+    _record(indexCur, indexOth, current, t) { // ------------------------------------------------ trace this
+        this._recordHelper(indexCur, indexOth, current, t, 0, this._size - 1);
+    }
+
+    _recordHelper(indexCur, indexOth, current, t, low, high) {
         let mid = Math.floor((high + low + 1) / 2);
-        let checkIndex = this._iGameObjects[mid];
 
-        // if indexCur exists in indeces, add collision information
-        if (indexCur == checkIndex) {
-            this._iCollisions[mid].push(indexOth);
-            this._tValues[mid].push(t);
-        }
-        
-        // if reached the end, create new entry
-        else if (low == this._size) {
-            this._gameObjects.push(current);
-            this._iGameObjects.push(indexCur);
-            this._iCollisions.push([indexOth]);
-            this._tValues.push([t]);
+        if (mid > high) { // if belongs at the very end
+            let currentObj = new CollisionObject(current, indexCur);
+            currentObj.addCol(t, indexOth);
+
+            this._colObjects.splice(mid, 0, currentObj);
             this._size++;
-        }
+        } else { // if belongs somewhere in the middle
+            let checkObj = this._colObjects[mid];
+            let checkIndex = checkObj.index;
 
-        // if reached the beginning, but bigger value, add at beginning + 1
-        else if (mid == low && indexCur > checkIndex) {
-            this._gameObjects.splice(mid + 1, 0, current);
-            this._iGameObjects.splice(mid + 1, 0, indexCur);
-            this._iCollisions.splice(mid + 1, 0, [indexOth]);
-            this._tValues.splice(mid + 1, 0, [t]);
-            this._size++;
-        }
-
-        // if reached the end, but smaller value, add at end
-        else if (mid == high && indexCur < checkIndex) {
-            this._gameObjects.splice(mid, 0, current);
-            this._iGameObjects.splice(mid, 0, indexCur);
-            this._iCollisions.splice(mid, 0, [indexOth]);
-            this._tValues.splice(mid, 0, [t]);
-            this._size++;
-        }
-
-        // binary search
-        else if (indexCur > checkIndex) {
-            this._record(indexCur, indexOth, current, t, mid + 1, high);
-        } else {
-            this._record(indexCur, indexOth, current, t, low, mid - 1);
+            if (indexCur == checkIndex) { 
+                checkObj.addCol(t, indexOth);
+            } else if (indexCur < checkIndex) {
+                this._recordHelper(indexCur, indexOth, current, t, low, mid - 1);
+            } else {
+                this._recordHelper(indexCur, indexOth, current, t, mid + 1, high);
+            }
         }
     }
 
     // returns a list of changes for all objects that underwent collisions
     getChanges() {
-        for (let i = 0; i < this._size; i++) {
-            this._changes.push(new ChangesPosVel());
-            this._updated.push(false);
-        }
-
         // get the changes for each object in collision
-        for (let curI = 0; curI < this._size; curI++) {
-            this._updateChanges(curI);
+        for (let i = 0; i < this._size; i++) {
+            this._updatePosition(i);
         }
 
-        return { indeces: this._iGameObjects, changes: this._changes, size: this._size };
+        let initialKE = this._calculateKE();
+        for (let i = 0; i < this._size; i++) {
+            this._updateVelocity(i);
+        }
+        let finalKE = this._calculateKE();
+
+        if (Math.round(initialKE) != Math.round(finalKE)) {
+            console.log("Kinetic Energy not conserved");
+        }
+
+        return this._colObjects;
     }
 
-    _updateChanges(curI) {
+    _updatePosition(curI) {
+        let currentObj = this._colObjects[ curI ];
+
         // if current is updated or if there are no more collisions for current, do not calculate anything
-        if (this._updated[curI] || this._tValues[curI].length == 0) {
+        if (currentObj.updated || currentObj.tValues.length == 0) {
             return;
         }
 
         // get the shortest collision for current, and smallest t value
-        let curShortestColI = this._getShortestCol(curI);
-        let othI = this._getIndex( this._iCollisions[curI][curShortestColI], 0, this._size - 1 ); // index of shortest collision
-        let curT = this._tValues[curI][curShortestColI];
+        let curShortestCol = this._getShortestCol(curI);
+        let othI = this._getIndex(curShortestCol.col);
+        let curT = curShortestCol.t;
 
         // get the smallest t value for other
-        let othShortestColI = this._getShortestCol(othI)
-        let othT = this._tValues[othI][othShortestColI];
+        let othShortestCol = this._getShortestCol(othI)
+        let othT = othShortestCol.t;
 
-        let current = this._gameObjects[curI];
-        let other = this._gameObjects[othI];
+        let otherObj = this._colObjects[ othI ];
+        let current = currentObj.object;
+        let other = otherObj.object;
 
         // if other has a shorter collision, update other first
         if (othT < curT) {
-            console.log("|othT < curT| current = " + current.mass + " [" + curI + "] and other = " + other.mass + " [" + othI + "]");
-            this._updateChanges(othI);
+            this._updatePosition(othI);
         }
 
         // if other is updated
-        if (this._updated[othI]) {
-            console.log("|other updated| current = " + current.mass + " [" + curI + "] and other = " + other.mass + " [" + othI + "]");
+        if (otherObj.updated) {
             // calculate collision assuming other's updated position and zero velocity
-            let othUpdatedPos = other.pos.add( this._changes[othI].pos );
-            let othUpdatedVel = other.vel.add( this._changes[othI].vel );
-            let newT = this._calculateT(current.pos, othUpdatedPos, current.vel, othUpdatedVel, current.rad + other.rad);
-
-            if (curI == 0) {
-                curI = 0;
-            }
+            let othUpdatedPos = other.pos.add( otherObj.change.pos );
+            let newT = this._calculateT(current.pos, othUpdatedPos, current.vel, new Vector(0, 0), current.rad + other.rad);
             
             // if current still collides with other, update current
             if (newT >= 0 && newT <= 1) {
-                // calculate impulse as if both objects are moving
                 let curPosChange = multiplyVector(current.vel, deltaT * newT);
 
                 // update the position of current
-                this._changes[curI].addPos( curPosChange );
+                currentObj.addPos( curPosChange );
 
-                // calculate the impulse between current and other
-                let curUpdatedPos = current.pos.add(curPosChange);
-                let impulse = this._calculateImpulse(curUpdatedPos, othUpdatedPos, current.vel, othUpdatedVel, current.mass, other.mass, newT);
+                // POSITION DEBUGGER --------------------------------------------------------------------------------------
+                // currentObj.addVel( multiplyVector(current.vel, -1) );
+                currentObj.markActive(this._colObjects[othI].index);
+                otherObj.markActive(this._colObjects[curI].index);
 
-                // update the velocities of current and other
-                this._changes[curI].addVel( impulse.current );
-                this._changes[othI].addVel( impulse.other );
-
-                this._updated[curI] = true;
+                currentObj.markUpdated();
             } 
 
             // if current no longer collides with other, recalculate current with the next shortest collision
             else {
-                // remove current's collision with other
-                this._removeCol(curI, othT);
+                // remove current's shortest collision
+                this._removeCol(curI, curShortestCol.col);
 
-                // update current and the next shortest collision
-                this._updateChanges(curI)
+                // update current with the next shortest collision
+                this._updatePosition(curI)
             }
         }
-
-        
 
         // if this is the shortest collision for both current and other, then update both
         else if (othT == curT) {
-            console.log("|othT == curT| current = " + current.mass + " [" + curI + "] and other = " + other.mass + " [" + othI + "]");
             // update the positions of current and other
             let curPosChange = multiplyVector(current.vel, deltaT * curT);
-            let othPosChange = multiplyVector(other.vel, deltaT * curT);
-            this._changes[curI].addPos( curPosChange );
-            this._changes[othI].addPos( othPosChange );
+            let othPosChange = multiplyVector(other.vel, deltaT * othT);
+            currentObj.addPos( curPosChange );
+            otherObj.addPos( othPosChange );
 
-            // calculate the impulse between current and other
-            let curUpdatedPos = current.pos.add(curPosChange);
-            let othUpdatedPos = other.pos.add(othPosChange);
-            let curUpdatedVel = current.vel.add( this._changes[curI].vel );
-            let othUpdatedVel = other.vel.add( this._changes[othI].vel );
-            let impulse = this._calculateImpulse(curUpdatedPos, othUpdatedPos, curUpdatedVel, othUpdatedVel, current.mass, other.mass, curT);
-
-            // update the velocities of current and other
-            this._changes[curI].addVel( impulse.current );
-            this._changes[othI].addVel( impulse.other );
+            // TEMPORARY DEBUGGER --------------------------------------------------------------------------------------
+            // currentObj.addVel( multiplyVector(current.vel, -1) );
+            // otherObj.addVel( multiplyVector(other.vel, -1) );
             
+            currentObj.markActive(this._colObjects[othI].index);
+            otherObj.markActive(this._colObjects[curI].index);
+
             // mark both current and other as updated
-            this._updated[curI] = true;
-            this._updated[othI] = true;
+            currentObj.markUpdated();
+            otherObj.markUpdated();
+
+            
         } 
     }
 
-    // returns the index of the shortest collision index of this._tValues for current
-    // returns -1 if no more collisions exist
-    _getShortestCol(curI) {
-        let tArr = this._tValues[curI];
-        let colI = 0;
-        let smallestT = tArr[0];
-        for (let i = 1; i < tArr.length; i++) {
-            if (tArr[i] < smallestT) {
-                smallestT = tArr[i];
-                colI = i;
+    // returns the environment index of the shortest collision of the collision object at the given index
+    _getShortestCol(index) {
+        let tValues = this._colObjects[index].tValues;
+        let colsI = this._colObjects[index].indeces;
+
+        let othI = 0;
+        let smallestT = tValues[0];
+
+        for (let i = 1; i < tValues.length; i++) {
+            if (tValues[i] < smallestT) {
+                smallestT = tValues[i];
+                othI = i;
             }
         }
-        return colI;
+
+        return { t: smallestT, col: colsI[othI] };
     }
 
-    // removes the collision at given index of nested array inside this._iCollisions
-    _removeCol(curI, colI) {
-        this._tValues[curI].splice(colI, 1);
-        this._iCollisions[curI].splice(colI, 1);
+    // removes the collision with environmental index of other from the colObject at index
+    _removeCol(index, othI) {
+        let currentObj = this._colObjects[index];
+        let indeces = currentObj.indeces;
+        for (let i = 0; i < indeces.length; i++) {
+            if (indeces[i] == othI) {
+                currentObj.removeCol(i);
+            }
+        }
     }
 
-    // removes all collisions at curI but the one at colI
-    _removeAllCol(curI, colI) {
-        this._tValues[curI] = [this._tValues[curI][colI]];
-        this._iCollisions[curI] = [this._iCollisions[curI][colI]];
+    _getIndex(i) {
+        return this._getIndexHelper(i, 0, this._size - 1);
     }
 
     // returns index of this._iGameObjects
-    _getIndex(i, low, high) { // -------------------------------------------------------------------------------------
+    _getIndexHelper(i, low, high) { // -------------------------------------------------------------------------------------
         let mid = Math.floor((high + low + 1) / 2);
-        let current = this._iGameObjects[mid];
+        let checkObj = this._colObjects[mid];
+        let checkIndex = checkObj.index;
 
-        if (i == current) {
+        if (i == checkIndex) {
             return mid;
-        } else if (i < current) {
-            return this._getIndex(i, low, mid - 1);
+        } else if (i < checkIndex) {
+            return this._getIndexHelper(i, low, mid - 1);
         } else {
-            return this._getIndex(i, mid + 1, high);
+            return this._getIndexHelper(i, mid + 1, high);
         }
     }
 
@@ -326,44 +296,42 @@ class NarrowCollisionEngine {
     }
 
 
-    _propogateMain() {
-        for (let i = 0; i < this._size; i++) {
-            let currentObj = this._colObjects[i];
-            let current = currentObj.object;
-            let curUpdatedPos = current.add(currentObj.change.pos);
+    _updateVelocity(curI) {
+        let currentObj = this._colObjects[curI];
+        let current = currentObj.object;
+        let curUpdatedPos = current.pos.add(currentObj.change.pos);
 
-            // if object did not move, do not calculate anything 
-            if (current.vel == 0) {
-                continue;
-            }
+        // if object did not move, do not calculate anything 
+        if (current.vel == 0) {
+            return;
+        }
 
-            let propogated = [currentObj.index];
-            let colsI = currentObj.cols;
+        let propogated = [currentObj.index];
+        let colsI = currentObj.cols;
 
-            for (let j = 0; j < colsI.length; j++) {
-                let colI = colsI[j];
-                let otherObj = this._colObjects[ this._getIndex(colI) ];
-                let other = otherObj.object;
-                let othUpdatedPos = other.add(otherObj.change.pos);
+        for (let j = 0; j < colsI.length; j++) {
+            let colI = colsI[j];
+            let otherObj = this._colObjects[ this._getIndex(colI) ];
+            let other = otherObj.object;
+            let othUpdatedPos = other.pos.add(otherObj.change.pos);
 
-                let impulse = this._calculateImpulse(curUpdatedPos, othUpdatedPos, current.vel, other.vel, current.mass, other.mass);
-                this._propogate(otherObj, impulse.other, propogated);
-                propogated.push(otherObj.index);
-                this._propogate(currentObj, impulse.current, propogated);
-            }
+            let impulse = this._calculateImpulse(curUpdatedPos, othUpdatedPos, current.vel, other.vel, current.mass, other.mass);
+            this._propogateHelper(otherObj, impulse.other, propogated);
+            // propogated.push(otherObj.index);
+            // this._propogateHelper(currentObj, impulse.current, propogated);
         }
     }
 
     // takes a velocity vector and a list of already propogated indeces
     // propogated the velocity vector to all unpropogated active collisions
-    _propogate(currentObj, velVector, propogated) {
+    _propogateHelper(currentObj, velVector, propogated) {
         currentObj.addVel(velVector);
         propogated.push(currentObj.index);
         let current = currentObj.object;
 
-        let colsI = this._getUnpropogated(propogated);
+        let colsI = this._getUnpropogated(currentObj, propogated);
 
-        for (let i = 0; i < colsI; i++) {
+        for (let i = 0; i < colsI.length; i++) {
             let colI = colsI[i];
 
             let otherObj = this._colObjects[ this._getIndex(colI) ];
@@ -373,17 +341,18 @@ class NarrowCollisionEngine {
             let projVector = projectVector(velVector, radiusVector);
             let propogatedCopy = this._makePropCopy(propogated, colsI, colI);
 
-            this._propogate(other, projVector, propogatedCopy);
+            this._propogateHelper(otherObj, projVector, propogatedCopy);
         }
     }
 
     // returns a list of active collisions that have not been already propogated
-    _getUnpropogated(current, propogated) {
-        let cols = [];
-        let found = false;
-
-        for (let i = 0; i < current.cols.length; i++) {
-            let colI = current.cols[i];
+    _getUnpropogated(currentObj, propogated) {
+        let cols = currentObj.cols;
+        let unpropCols = [];
+        
+        for (let i = 0; i < cols.length; i++) {
+            let found = false;
+            let colI = cols[i];
             for (let j = 0; j < propogated.length; j++) {
                 // if indeces are the same, then curI has already been propogated
                 if (colI == propogated[j]) {
@@ -394,11 +363,11 @@ class NarrowCollisionEngine {
 
             // if active collision was not already propogated, put it in the list
             if (!found) {
-                cols.push(colI);
+                unpropCols.push(colI);
             }
         }
 
-        return cols;
+        return unpropCols;
     }
 
     // makes a new array that includes all of the indeces in propogated and cols, excluding col from cols
@@ -415,5 +384,21 @@ class NarrowCollisionEngine {
         }
 
         return copy;
+    }
+
+
+
+
+    // DEBUGGING
+    _calculateKE() {
+        let sum = 0;
+        for (let i = 0; i < this._size; i++) {
+            let initialVel = this._colObjects[i].object.vel;
+            let velChange = this._colObjects[i].change.vel;
+            let vel = initialVel.add(velChange);
+            let mass = this._colObjects[i].object.mass;
+            sum += 0.5 * mass * vel.mag * vel.mag;
+        }
+        return sum;
     }
 }
