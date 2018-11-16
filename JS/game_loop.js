@@ -67,13 +67,14 @@ $(document).ready(function() {
     let context = canvas.getContext('2d');
     
     let envir = new Environment(canvas);
-    envir.initTest3();
+    envir.initTest4();
 
     loop();
 
     function loop() {
         context.clearRect(0, 0, canvas.width, canvas.height);
-        
+
+        // get deltaTime and keyboard events
         deltaT = systemTime.getDeltaTime();
         events.checkEvents();
 
@@ -82,6 +83,7 @@ $(document).ready(function() {
             pause = false;
         }
 
+        // environment only updates if it isn't paused
         if (!pause) {
             envir.update();
         }

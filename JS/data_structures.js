@@ -110,10 +110,12 @@ class CollisionObject {
         this._gameObject = gameObject;
         this._index = envirIndex;
 
-        this._tValues = []; // all potential tValues of collisions
-        this._indeces = []; // all indeces of collisions
+        // information about other objects
+        this._numCols = 0;
+        this._tValues = []; // tValues of collisions
+        this._indeces = []; // indeces of objects
 
-        this._updated = false; // if shortest collision was found
+        this._numActive = 0;
         this._indecesActive = []; // all final collisions
 
         this._change = new ChangesPosVel();
@@ -125,6 +127,9 @@ class CollisionObject {
     get index() {
         return this._index;
     }
+    get empty() {
+        return this._numCols == 0;
+    }
     get tValues() {
         return this._tValues;
     }
@@ -132,7 +137,7 @@ class CollisionObject {
         return this._indeces;
     }
     get updated() {
-        return this._updated;
+        return this._numActive > 0;
     }
     get cols() {
         return this._indecesActive;
@@ -141,6 +146,7 @@ class CollisionObject {
         return this._change;
     }
 
+    // has to do with changes
     addPos(posVector) {
         this._change.addPos(posVector);
     }
@@ -148,21 +154,45 @@ class CollisionObject {
         this._change.addVel(velVector);
     }
 
+    // has to do with collisions
+    // inserts information about collision based on tValue, smallest to largest
     addCol(t, index) {
-        this._tValues.push(t);
-        this._indeces.push(index);
+        this._addCol(t, index, 0, this._numCols - 1);
     }
-    removeCol(index) {
-        this._tValues.splice(index, 1);
-        this._indeces.splice(index, 1);
+    _addCol(t, index, low, high) {
+        let mid = Math.floor((high + low + 1) / 2);
+
+        if (mid > high) {
+            this._tValues.splice(mid, 0, t);
+            this._indeces.splice(mid, 0, index);
+            this._numCols++;
+        } else {
+            let checkT = this._tValues[mid];
+
+            if (t <= checkT) {
+                this._addCol(t, index, low, mid - 1);
+            } else {
+                this._addCol(t, index, mid + 1, high);
+            }
+        }
+    }
+
+    getEarliestCol() {
+        if (this._numCols > 0) {
+            return { t: this._tValues[0], col: this._indeces[0] };
+        } else {
+            console.log("CollisionObject.getEarliestCol() no other collision");
+        }
+    }
+    removeCol() {
+        this._tValues.splice(0, 1);
+        this._indeces.splice(0, 1);
+        this._numCols--;
     }
 
     markActive(index) {
         this._indecesActive.push(index);
-    }
-
-    markUpdated() {
-        this._updated = true;
+        this._numActive++;
     }
 }
 

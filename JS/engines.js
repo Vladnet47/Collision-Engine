@@ -25,31 +25,26 @@ class NarrowCollisionEngine {
     // records collision if it occurs
     // returns true if collision occurs, false if it doesn't
     check(i, current, j, other) {
-        // find distance from gameObject and other, direction from gameObject to other
-        let dist = magnitude(other.x - current.x, other.y - current.y);
-        
-        // find sum of radii
+        let dist = distance(other.pos, current.pos);
         let radSum = current.rad + other.rad;
 
-        // find velocities of current and other, times delta time
+        // find change in position for current frame (velocity * delta time)
         let curVel = multiplyVector(current.vel, deltaT);
         let othVel = multiplyVector(other.vel, deltaT);
 
-        // if the objects are too far apart, do not check for colision
-        if (dist > radSum + curVel.mag + othVel.mag) {
-            return false;
-        }
+        // if the objects are close enough to collide
+        if (dist < radSum + curVel.mag + othVel.mag) {
+            // calculate time of intersection, which represents a percentage of current velocity
+            let t = this._calculateT(current.pos, other.pos, curVel, othVel, radSum);
 
-        // calculate time of intersection, which represents a percentage of current velocity
-        let t = this._calculateT(current.pos, other.pos, curVel, othVel, radSum);
-
-        // if intersection occurs within the current velocities, record both objects
-        if (t >= 0 && t <= 1) {
-            let curI = this._record(i, current);
-            let othI = this._record(j, other);
-            this._colObjects[curI].addCol(t, othI);
-            this._colObjects[othI].addCol(t, curI);
-            return true;
+            // if intersection occurs within the current velocities, record both objects
+            if (t >= 0 && t <= 1) {
+                let curI = this._record(i, current);
+                let othI = this._record(j, other);
+                this._colObjects[curI].addCol(t, othI);
+                this._colObjects[othI].addCol(t, curI);
+                return true;
+            }
         }
         return false;
     }
@@ -57,15 +52,13 @@ class NarrowCollisionEngine {
     // if collision occurs, returns the time of collision, relative to the starting position (t is between 0 and 1)
     // otherwise, return -1;
     _calculateT(curPos, othPos, curVel, othVel, radSum) {
-        let velDiffX = curVel.x - othVel.x;
-        let velDiffY = curVel.y - othVel.y;
-        let posDiffX = othPos.x - curPos.x;
-        let posDiffY = othPos.y - curPos.y;
+        let velDiff = new Vector(curVel.x - othVel.x, curVel.y - othVel.y);
+        let posDiff = new Vector(othPos.x - curPos.x, othPos.y - curPos.y);
 
-        // quadratic formula
-        let a = Math.pow(velDiffX, 2) + Math.pow(velDiffY, 2);
-        let b = -2 * (posDiffX * velDiffX + posDiffY * velDiffY);
-        let c = Math.pow(posDiffX, 2) + Math.pow(posDiffY, 2) - Math.pow(radSum, 2);
+        // quadratic formula to find intersection of two circles with velocities
+        let a = Math.pow(velDiff.x, 2) + Math.pow(velDiff.y, 2);
+        let b = -2 * vectorDot(posDiff, velDiff);
+        let c = Math.pow(posDiff.x, 2) + Math.pow(posDiff.y, 2) - Math.pow(radSum, 2);
         let discriminant = Math.pow(b, 2) - 4 * a * c;
 
         let result = -1;
@@ -73,15 +66,16 @@ class NarrowCollisionEngine {
             let sqrtDisc = Math.sqrt(discriminant);
             let denom = 2 * a;
 
-            let t1 = round( (-b + sqrtDisc) / denom, 4 );
-            let t2 = round( (-b - sqrtDisc) / denom, 4 );
+            let t1 = round( (sqrtDisc - b) / denom, 4 );
+            let t2 = round( (-sqrtDisc - b) / denom, 4 );
 
             (t1 > t2) ? result = t2 : result = t1;
         }
         return result;
     }
 
-    // binary insert, colObjects is ordered by environment index
+    // takes environment index and gameObject
+    // returns index of created collision object in this._colObjects, ordered by environment index
     _record(indexCur, current) {
         return this._recordHelper(indexCur, current, 0, this._size - 1);
     }
@@ -90,14 +84,13 @@ class NarrowCollisionEngine {
         let mid = Math.floor((high + low + 1) / 2);
 
         if (mid > high) {
-            let currentObj = new CollisionObject(current, indexCur);
-            this._colObjects.splice(mid, 0, currentObj);
+            let newObj = new CollisionObject(current, indexCur);
+            this._colObjects.splice(mid, 0, newObj);
             this._size++;
 
             return mid;
         } else {
-            let checkObj = this._colObjects[mid];
-            let checkIndex = checkObj.index;
+            let checkIndex = this._colObjects[mid].index;
 
             if (indexCur == checkIndex) { 
                 return mid;
@@ -132,106 +125,91 @@ class NarrowCollisionEngine {
     }
 
     _updatePosition(curI) {
-        let currentObj = this._colObjects[ curI ];
+        let currentObj = this._colObjects[curI];
+        let current = currentObj.object;
 
-        // if current is updated or if there are no more collisions for current, do not calculate anything
-        if (currentObj.updated || currentObj.tValues.length == 0) {
+        // if current is updated or if there are no more collisions, do not calculate anything
+        if (currentObj.updated || currentObj.empty || current.vel == 0) {
             return;
         }
 
-        // get the shortest collision for current, and smallest t value
-        let curShortestCol = this._getShortestCol(curI);
-        let othI = curShortestCol.col;
-        let curT = curShortestCol.t;
+        // get necessary components for current
+        let curEarliestCol = currentObj.getEarliestCol();
+        let othI = curEarliestCol.col;
+        let curT = curEarliestCol.t;
+        let curPosChange = multiplyVector(current.vel, deltaT * curT);
 
-        // get the smallest t value for other
-        let othShortestCol = this._getShortestCol(othI)
-        let othT = othShortestCol.t;
-
-        let otherObj = this._colObjects[ othI ];
-        let current = currentObj.object;
+        // get necessary components for other
+        let otherObj = this._colObjects[othI];
         let other = otherObj.object;
+        let othEarliestCol = otherObj.getEarliestCol();
+        let othT = othEarliestCol.t;
 
-        // if other has a shorter collision, update other first
+        // if other has earlier collision, update other
         if (othT < curT) {
             this._updatePosition(othI);
         }
 
-        // if other is updated
+        // if other is updated, it may change the collision between current and other
         if (otherObj.updated) {
             // calculate collision assuming other's updated position and zero velocity
             let othUpdatedPos = other.pos.add( otherObj.change.pos );
             let radSum = current.rad + other.rad;
-            let newT = this._calculateT(current.pos, othUpdatedPos, multiplyVector(current.vel, deltaT), new Vector(0, 0), radSum);
+
+            // if new position of current should not be changed, add position
+            // otherwise, recalculate using updated other position and zero velocity
+            if (radSum == distance(othUpdatedPos, current.pos.add(curPosChange))) {
+                console.log("_updatePosition() didn't recalculate t");
+                current.addPos(curPosChange);
+            } else {
+                // calculate new t of collision
+                let newT = this._calculateT(current.pos, othUpdatedPos, multiplyVector(current.vel, deltaT), new Vector(0, 0), radSum);
             
-            // if current still collides with other, update current
-            if (newT >= 0 && newT <= 1) {
-                let curPosChange = multiplyVector(current.vel, deltaT * newT);
+                if (newT >= 0 && newT <= 1) {
+                    // update the position of current
+                    currentObj.addPos( multiplyVector(curPosChange, newT / curT) );
 
-                // update the position of current
-                currentObj.addPos( curPosChange );
-
-                // identify the active collisions
-                currentObj.markActive(othI);
-                otherObj.markActive(curI);
-
-                currentObj.markUpdated();
-            } 
-
-            // if current no longer collides with other, recalculate current with the next shortest collision
-            else {
-                // remove current's shortest collision
-                this._removeCol(curI, curShortestCol.col);
-
-                // update current with the next shortest collision
-                this._updatePosition(curI)
+                    currentObj.markActive(othI);
+                    otherObj.markActive(curI);
+                } else { // if current no longer collides with other, recalculate using next shortest collision
+                    currentObj.removeCol();
+                    this._updatePosition(curI)
+                }
             }
-        }
-
-        // if this is the shortest collision for both current and other, then update both
-        else if (othT == curT) {
+        } else if (othT == curT) { // if earliest collision for both current and other
             // update the positions of current and other
-            let curPosChange = multiplyVector(current.vel, deltaT * curT);
             let othPosChange = multiplyVector(other.vel, deltaT * othT);
             currentObj.addPos( curPosChange );
             otherObj.addPos( othPosChange );
 
-            // identify the active collisions
             currentObj.markActive(othI);
             otherObj.markActive(curI);
-
-            // mark both current and other as updated
-            currentObj.markUpdated();
-            otherObj.markUpdated();
         } 
     }
 
-    // returns the environment index of the shortest collision of the collision object at the given index
-    _getShortestCol(index) {
-        let tValues = this._colObjects[index].tValues;
-        let colsI = this._colObjects[index].indeces;
+    _updateVelocity(curI) {
+        let currentObj = this._colObjects[curI];
+        let current = currentObj.object;
+        let curUpdatedPos = current.pos.add(currentObj.change.pos);
 
-        let othI = 0;
-        let smallestT = tValues[0];
-
-        for (let i = 1; i < tValues.length; i++) {
-            if (tValues[i] < smallestT) {
-                smallestT = tValues[i];
-                othI = i;
-            }
+        // if object did not move, do not calculate anything 
+        if (current.vel == 0) {
+            return;
         }
 
-        return { t: smallestT, col: colsI[othI] };
-    }
+        let propogated = [curI];
+        let colsI = currentObj.cols;
 
-    // removes the collision with environmental index of other from the colObject at index
-    _removeCol(index, othI) {
-        let currentObj = this._colObjects[index];
-        let indeces = currentObj.indeces;
-        for (let i = 0; i < indeces.length; i++) {
-            if (indeces[i] == othI) {
-                currentObj.removeCol(i);
-            }
+        for (let j = 0; j < colsI.length; j++) {
+            let colI = colsI[j];
+            let otherObj = this._colObjects[ colI ];
+            let other = otherObj.object;
+            let othUpdatedPos = other.pos.add(otherObj.change.pos);
+
+            let impulse = this._calculateImpulse(curUpdatedPos, othUpdatedPos, current.vel, other.vel, current.mass, other.mass);
+            this._propogate(colI, otherObj, impulse.other, propogated);
+            // propogated.push(otherObj.index);
+            // this._propogateHelper(currentObj, impulse.current, propogated);
         }
     }
 
@@ -274,36 +252,9 @@ class NarrowCollisionEngine {
         return { current: curChange , other: othChange };
     }
 
-
-    _updateVelocity(curI) {
-        let currentObj = this._colObjects[curI];
-        let current = currentObj.object;
-        let curUpdatedPos = current.pos.add(currentObj.change.pos);
-
-        // if object did not move, do not calculate anything 
-        if (current.vel == 0) {
-            return;
-        }
-
-        let propogated = [curI];
-        let colsI = currentObj.cols;
-
-        for (let j = 0; j < colsI.length; j++) {
-            let colI = colsI[j];
-            let otherObj = this._colObjects[ colI ];
-            let other = otherObj.object;
-            let othUpdatedPos = other.pos.add(otherObj.change.pos);
-
-            let impulse = this._calculateImpulse(curUpdatedPos, othUpdatedPos, current.vel, other.vel, current.mass, other.mass);
-            this._propogateHelper(colI, otherObj, impulse.other, propogated);
-            // propogated.push(otherObj.index);
-            // this._propogateHelper(currentObj, impulse.current, propogated);
-        }
-    }
-
     // takes a velocity vector and a list of already propogated indeces
     // propogated the velocity vector to all unpropogated active collisions
-    _propogateHelper(curI, currentObj, velVector, propogated) {
+    _propogate(curI, currentObj, velVector, propogated) {
         currentObj.addVel(velVector);
         propogated.push(curI);
         let current = currentObj.object;
@@ -320,7 +271,7 @@ class NarrowCollisionEngine {
             let projVector = projectVector(velVector, radiusVector);
             let propogatedCopy = this._makePropCopy(propogated, colsI, colI);
 
-            this._propogateHelper(colI, otherObj, projVector, propogatedCopy);
+            this._propogate(colI, otherObj, projVector, propogatedCopy);
         }
     }
 
@@ -365,7 +316,7 @@ class NarrowCollisionEngine {
         return copy;
     }
 
-    // DEBUGGING
+    // TESTING
     _calculateKE() {
         let sum = 0;
         for (let i = 0; i < this._size; i++) {

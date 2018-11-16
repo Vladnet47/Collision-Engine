@@ -130,6 +130,23 @@ class Environment {
         pause = true;
     }
 
+    initTest4() {
+        let gam1 = this._createTestObject2(new Vector(500, 300), new Vector(0, 1), 10, 400);
+        let gam2 = this._createTestObject2(new Vector(525, 300), new Vector(0, 1), 10, 400);
+        let gam3 = this._createTestObject2(new Vector(100, 300), new Vector(5000, 0), 10, 5);
+
+        this._gameObjectsNext.push(gam1);
+        this._gameObjectsNext.push(gam2);
+        this._gameObjectsNext.push(gam3);
+
+        this._nObjects = this._gameObjectsNext.length;
+
+        this._narrowColEngine = new NarrowCollisionEngine();
+        this._narrowColEngine.toggleBound(this._collisionProps.width, this._collisionProps.height);
+
+        pause = true;
+    }
+
     _createTestObject2(position, velocity, size, mass) {
         let obj = new GameObject(new Circle(position, size), 'rgb(51, 204, 51)', velocity, mass);
         obj.collidable = true;
