@@ -128,7 +128,7 @@ class NewModelTest {
         for (let index = 0; index < numOfRecords; ++index) {
             let curRecord = this._collisionRecords[index];
             let newObject = new CollisionObject(curRecord.i, curRecord.gam.vel, !curRecord.gam.physics);
-            let collision = curRecord.cols;
+            let collision = curRecord.activeCols;
         }
     }
 

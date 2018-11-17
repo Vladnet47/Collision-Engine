@@ -110,13 +110,16 @@ class CollisionObject {
         this._gameObject = gameObject;
         this._index = envirIndex;
 
-        // information about other objects
-        this._numCols = 0;
-        this._tValues = []; // tValues of collisions
-        this._indeces = []; // indeces of objects
+        // information about bounding rectangle collisions
+        this._sides = [];
 
-        this._numActive = 0;
-        this._indecesActive = []; // all final collisions
+        // information about other objects
+        this._tValues = []; // tValues of collisions
+        this._numPotentialCols = 0;
+        this._potentialCols = []; // all potential collisions
+
+        this._numActiveCols = 0;
+        this._activeCols = []; // all final collisions
 
         this._change = new ChangesPosVel();
     }
@@ -127,20 +130,23 @@ class CollisionObject {
     get index() {
         return this._index;
     }
-    get empty() {
-        return this._numCols == 0;
+    get noPotentialCols() {
+        return this._numPotentialCols == 0;
+    }
+    get noActiveCols() {
+        return this._numActiveCols == 0;
     }
     get tValues() {
         return this._tValues;
     }
-    get indeces() {
-        return this._indeces;
+    get potentialCols() {
+        return this._potentialCols;
     }
-    get updated() {
-        return this._numActive > 0;
+    get activeCols() {
+        return this._activeCols;
     }
-    get cols() {
-        return this._indecesActive;
+    get boundCols() {
+        return this._sides;
     }
     get change() {
         return this._change;
@@ -153,46 +159,49 @@ class CollisionObject {
     addVel(velVector) {
         this._change.addVel(velVector);
     }
+    addBoundCols(sides) {
+        this._sides = sides;
+    }
 
     // has to do with collisions
     // inserts information about collision based on tValue, smallest to largest
-    addCol(t, index) {
-        this._addCol(t, index, 0, this._numCols - 1);
+    addPotentialCol(t, index) {
+        this._addPotentialCol(t, index, 0, this._numPotentialCols - 1);
     }
-    _addCol(t, index, low, high) {
+    _addPotentialCol(t, index, low, high) {
         let mid = Math.floor((high + low + 1) / 2);
 
         if (mid > high) {
             this._tValues.splice(mid, 0, t);
-            this._indeces.splice(mid, 0, index);
-            this._numCols++;
+            this._potentialCols.splice(mid, 0, index);
+            this._numPotentialCols++;
         } else {
             let checkT = this._tValues[mid];
 
             if (t <= checkT) {
-                this._addCol(t, index, low, mid - 1);
+                this._addPotentialCol(t, index, low, mid - 1);
             } else {
-                this._addCol(t, index, mid + 1, high);
+                this._addPotentialCol(t, index, mid + 1, high);
             }
         }
     }
 
     getEarliestCol() {
-        if (this._numCols > 0) {
-            return { t: this._tValues[0], col: this._indeces[0] };
+        if (this._numPotentialCols > 0) {
+            return { t: this._tValues[0], col: this._potentialCols[0] };
         } else {
             console.log("CollisionObject.getEarliestCol() no other collision");
         }
     }
-    removeCol() {
+    removePotentialCol() {
         this._tValues.splice(0, 1);
-        this._indeces.splice(0, 1);
-        this._numCols--;
+        this._potentialCols.splice(0, 1);
+        this._numPotentialCols--;
     }
 
-    markActive(index) {
-        this._indecesActive.push(index);
-        this._numActive++;
+    addCol(index) {
+        this._activeCols.push(index);
+        this._numActiveCols++;
     }
 }
 
@@ -224,7 +233,6 @@ class GameObject {
         this._mass = mass;
         this._properties = {
             collidable: false, // GameObject will be scanned for collisions
-            physics: false, // GameObject will not react to global events and collision physics
             colType: { ground: false } // Used to handle GameObject-specific collisions
         };
     }
@@ -253,9 +261,6 @@ class GameObject {
     get collidable() {
         return this._properties.collidable;
     }
-    get physics() {
-        return this._properties.physics;
-    }
     get listCols() {
         return this._properties.colType;
     }
@@ -265,9 +270,6 @@ class GameObject {
     }
     set collidable(state) {
         this._properties.collidable = state;
-    }
-    set physics(state) {
-        this._properties.physics = state;
     }
 
     setCollision(type, state) {

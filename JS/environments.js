@@ -23,33 +23,28 @@ class Environment {
 
         let player = new Player(new Circle(new Vector(430, 100), 30), 'rgb(0, 153, 255)', new Vector(0, 0), 100);
         player.collidable = true;
-        player.physics = true;
 
         let gam1 = new GameObject(new Circle(new Vector(600, 300), 60), 'rgb(51, 204, 51)', new Vector(0, 0), 1000);
         gam1.collidable = true;
-        gam1.physics = true;
 
         let gam2 = new GameObject(new Circle(new Vector(500, 500), 10), 'rgb(51, 204, 51)', new Vector(0, 0), 100);
         gam2.collidable = true;
-        gam2.physics = true;
 
         let gam3 = new GameObject(new Circle(new Vector(400, 300, 20), 20), 'rgb(51, 204, 51)', new Vector(0, 0), 80);
         gam3.collidable = true;
-        gam3.physics = true;
 
         let gam4 = new GameObject(new Circle(new Vector(200, 200), 40), 'rgb(51, 204, 51)', new Vector(0, 0), 60);
         gam4.collidable = true;
-        gam4.physics = true;
 
         this._gameObjectsNext.push(player);
         this._gameObjectsNext.push(gam1);
-        this._gameObjectsNext.push(gam2);
-        this._gameObjectsNext.push(gam3);
-        this._gameObjectsNext.push(gam4);
+        //this._gameObjectsNext.push(gam2);
+        //this._gameObjectsNext.push(gam3);
+        //this._gameObjectsNext.push(gam4);
         this._nObjects = this._gameObjectsNext.length;
 
         this._narrowColEngine = new NarrowCollisionEngine();
-        this._narrowColEngine.toggleBound(this._collisionProps.width, this._collisionProps.height);
+        this._narrowColEngine.toggleBound(new Vector(0,0), this._collisionProps.width, this._collisionProps.height);
     }
 
     initTest1() {
@@ -74,7 +69,8 @@ class Environment {
         this._nObjects = this._gameObjectsNext.length;
 
         this._narrowColEngine = new NarrowCollisionEngine();
-        this._narrowColEngine.toggleBound(this._collisionProps.width, this._collisionProps.height);
+        this._narrowColEngine.toggleBound(new Vector(0,0), this._collisionProps.width, this._collisionProps.height);
+
 
         pause = true;
     }
@@ -82,7 +78,6 @@ class Environment {
     initTest2() {
         let player = new Player(new Circle(new Vector(430, 100), 30), 'rgb(0, 153, 255)', new Vector(0, 0), 20);
         player.collidable = true;
-        player.physics = true;
 
         let gam1 = this._createTestObject2(new Vector(100, 400), new Vector(50, 0), 30, 10);
         let gam2 = this._createTestObject2(new Vector(500, 400), new Vector(-50, 0), 30, 10);
@@ -106,7 +101,7 @@ class Environment {
         this._nObjects = this._gameObjectsNext.length;
 
         this._narrowColEngine = new NarrowCollisionEngine();
-        this._narrowColEngine.toggleBound(this._collisionProps.width, this._collisionProps.height);
+        this._narrowColEngine.toggleBound(new Vector(0,0), this._collisionProps.width, this._collisionProps.height);
 
         pause = true;
     }
@@ -125,7 +120,7 @@ class Environment {
         this._nObjects = this._gameObjectsNext.length;
 
         this._narrowColEngine = new NarrowCollisionEngine();
-        this._narrowColEngine.toggleBound(this._collisionProps.width, this._collisionProps.height);
+        this._narrowColEngine.toggleBound(new Vector(0,0), this._collisionProps.width, this._collisionProps.height);
 
         pause = true;
     }
@@ -142,7 +137,25 @@ class Environment {
         this._nObjects = this._gameObjectsNext.length;
 
         this._narrowColEngine = new NarrowCollisionEngine();
-        this._narrowColEngine.toggleBound(this._collisionProps.width, this._collisionProps.height);
+        this._narrowColEngine.toggleBound(new Vector(0,0), this._collisionProps.width, this._collisionProps.height);
+
+        pause = true;
+    }
+
+    initTest5() {
+        let player = new Player(new Circle(new Vector(430, 100), 30), 'rgb(0, 153, 255)', new Vector(0, 0), 20);
+        player.collidable = true;
+
+        let gam = new GameObject(new Circle(new Vector(400, 400), 120), 'rgb(51, 204, 51)', new Vector(0, 0), 1000000);
+        gam.collidable = true;
+
+        this._gameObjectsNext.push(player);
+        this._gameObjectsNext.push(gam);
+
+        this._nObjects = this._gameObjectsNext.length;
+
+        this._narrowColEngine = new NarrowCollisionEngine();
+        this._narrowColEngine.toggleBound(new Vector(0,0), this._collisionProps.width, this._collisionProps.height);
 
         pause = true;
     }
@@ -150,7 +163,6 @@ class Environment {
     _createTestObject2(position, velocity, size, mass) {
         let obj = new GameObject(new Circle(position, size), 'rgb(51, 204, 51)', velocity, mass);
         obj.collidable = true;
-        obj.physics = true;
 
         return obj;
     }
@@ -235,6 +247,10 @@ class Environment {
             // INDIVIDUAL BEHAVIOR
             change.add(current.behave());
 
+            if (current instanceof Player) {
+                console.log(current.vel.mag);
+            }
+
             // update velocity for collision
             this.updateVelocity(current, change);
         }
@@ -247,15 +263,8 @@ class Environment {
         this._narrowColEngine.reset();
 
         for (let i = 0; i < this._nObjects; i++) {
-            let current = this._gameObjectsCurrent[i];
-            if (current.collidable == false) continue;
-
-            // check for collisions
             for (let j = i + 1; j < this._nObjects; j++) {
-                let other = this._gameObjectsCurrent[j]
-                if (other.collidable == false) continue;
-
-                this._narrowColEngine.check(i, current, j, other);
+                this._narrowColEngine.check(i, this._gameObjectsCurrent[i], j, this._gameObjectsCurrent[j]);
             }
         }
 

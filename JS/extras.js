@@ -129,7 +129,7 @@ class GameObject {
 //         return this._index;
 //     }
 
-//     get cols() {
+//     get activeCols() {
 //         return this._collisions;
 //     }
 
@@ -225,7 +225,7 @@ class CollisionRecord {
     get gam() {
         return this._gameObject;
     }
-    get cols() {
+    get activeCols() {
         return this._collisions;
     }
 
@@ -514,7 +514,7 @@ class collisionGroup {
         if ( this._narrowColEngine == null ) { throw Error("No narrow collision engine specified"); }
 
 
-        // Test check potential cols
+        // Test check potential activeCols
         let potential = this._narrowColEngine.update(this._gameObjectsCurrent, deltaT);
 
         for(let index = 0; index < potential.length; ++index) {
