@@ -160,6 +160,23 @@ class Environment {
         pause = true;
     }
 
+    initTest6() {
+        let gam1 = this._createTestObject2(new Vector(300, 200), new Vector(0, 0), 49, 400);
+        let gam2 = this._createTestObject2(new Vector(300, 500), new Vector(0, -200), 49, 1000);
+        let gam3 = this._createTestObject2(new Vector(300, 100), new Vector(0, 0), 50, 400);
+
+        this._gameObjectsNext.push(gam1);
+        this._gameObjectsNext.push(gam2);
+        this._gameObjectsNext.push(gam3);
+
+        this._nObjects = this._gameObjectsNext.length;
+
+        this._narrowColEngine = new NarrowCollisionEngine();
+        this._narrowColEngine.toggleBound(new Vector(0,0), this._collisionProps.width, this._collisionProps.height);
+
+        pause = true;
+    }
+
     _createTestObject2(position, velocity, size, mass) {
         let obj = new GameObject(new Circle(position, size), 'rgb(51, 204, 51)', velocity, mass);
         obj.collidable = true;
@@ -247,10 +264,6 @@ class Environment {
             // INDIVIDUAL BEHAVIOR
             change.add(current.behave());
 
-            if (current instanceof Player) {
-                console.log(current.vel.mag);
-            }
-
             // update velocity for collision
             this.updateVelocity(current, change);
         }
@@ -267,7 +280,7 @@ class Environment {
                 this._narrowColEngine.check(i, this._gameObjectsCurrent[i], j, this._gameObjectsCurrent[j]);
             }
         }
-
+        
         // handle collisions
         let result = this._narrowColEngine.getChanges();
 

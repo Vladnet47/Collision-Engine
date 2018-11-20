@@ -44,10 +44,15 @@ class NarrowCollisionEngine {
         let dist = distance(other.pos, current.pos);
         let radSum = current.rad + other.rad;
 
+        if (dist < radSum) {
+            console.log("CollisionEngine.check() " + i + " and " + j + " overalapping during subsequent iteration");
+        }
+
         // if the objects are close enough to collide
-        if (dist < radSum + curVel.mag + othVel.mag) {
+        if (dist <= (radSum + curVel.mag + othVel.mag)) {
             // calculate time of intersection, which represents a percentage of current velocity
             let t = this._calculateT(current.pos, other.pos, curVel, othVel, radSum);
+            console.log(t);
 
             // if intersection occurs within the current velocities, record both objects
             if (t >= 0 && t <= 1) {
@@ -65,19 +70,21 @@ class NarrowCollisionEngine {
     getChanges() {
         // get the position changes for each object in collision
         for (let i = 0; i < this._size; i++) {
+            console.log("update position of index " + i);
             this._updatePosition(i);
         }
 
         // get the velocity changes for each object in collision
-        let initialKE = this._calculateKE();
+        let initialKE = this._calculateTotalKE();
         for (let i = 0; i < this._size; i++) {
+            console.log("update velocity of index " + i);
             this._updateVelocity(i);
         }
-        let finalKE = this._calculateKE();
+        let finalKE = this._calculateTotalKE();
 
         // for debugging purposes - if kinetic energy not conserved, impulse was not properly distributed
         if (Math.round(initialKE) != Math.round(finalKE)) {
-            console.log("Kinetic Energy not conserved");
+            console.log("Total Kinetic Energy not conserved");
         }
 
         return this._colObjects;
@@ -122,12 +129,12 @@ class NarrowCollisionEngine {
             let sqrtDisc = Math.sqrt(discriminant);
             let denom = 2 * a;
 
-            let t1 = round( (sqrtDisc - b) / denom, 4 );
-            let t2 = round( (-sqrtDisc - b) / denom, 4 );
+            let t1 = round( (sqrtDisc - b) / denom, 4 ) - 0.0001;
+            let t2 = round( (-sqrtDisc - b) / denom, 4 ) - 0.0001;
 
             return (t1 > t2) ? t2 : t1;
         } else {
-            return -1;
+            return -10;
         }
     }
 
@@ -217,7 +224,7 @@ class NarrowCollisionEngine {
         let current = currentObj.object;
 
         // if current is updated or if there are no more collisions, do not calculate anything
-        if (!currentObj.noActiveCols || currentObj.noPotentialCols || current.vel == 0) {
+        if (!currentObj.noActiveCols || currentObj.noPotentialCols || current.vel.x == 0 && current.vel.y == 0) {
             return;
         }
 
@@ -236,6 +243,7 @@ class NarrowCollisionEngine {
         // get necessary components for other
         let otherObj = this._colObjects[othI];
         let other = otherObj.object;
+
         let othEarliestCol = otherObj.getEarliestCol();
         let othT = othEarliestCol.t;
 
@@ -249,13 +257,14 @@ class NarrowCollisionEngine {
             // calculate collision assuming other's updated position and zero velocity
             let othUpdatedPos = other.pos.add( otherObj.change.pos );
             let radSum = current.rad + other.rad;
+            let dist = distance(othUpdatedPos, current.pos.add(curPosChange));
 
             // if new position of current should not be changed, add position
             // otherwise, recalculate using updated other position and zero velocity
-            if (radSum == distance(othUpdatedPos, current.pos.add(curPosChange))) {
+            if (radSum == dist) {
                 console.log("_updatePosition() didn't recalculate t");
                 current.addPos(curPosChange);
-            } else {
+            } else if (radSum > dist) {
                 // calculate new t of collision
                 let newT = this._calculateT(current.pos, othUpdatedPos, multiplyVector(current.vel, deltaT), new Vector(0, 0), radSum);
             
@@ -278,51 +287,159 @@ class NarrowCollisionEngine {
 
             currentObj.addCol(othI);
             otherObj.addCol(curI);
-        } 
+        }
     }
 
-    _updateVelocity(curI) {
+    // _updateVelocity(curI) {
+    //     // if illegal index, return
+    //     if (curI < 0) {
+    //         return;
+    //     }
+
+    //     // get information about current and active collisions
+    //     let currentObj = this._colObjects[curI];
+    //     let current = currentObj.object;
+    //     let activeCols = currentObj.activeCols;
+
+    //     // go through each active collision
+    //     for (let i = 0; i < activeCols.length; i++) {
+    //         let othI = activeCols[i];
+    //         let impulse;
+    //         let prop;
+
+    //         if (othI == this._bound.index) {
+    //             prop = [];
+    //             break;
+    //         } else {
+    //             let otherObj = this._colObjects[othI];
+    //             let other = otherObj.object;
+    //             let curUpdatedPos = current.pos.add(currentObj.change.pos);
+    //             let othUpdatedPos = other.pos.add(otherObj.change.pos);
+
+    //             impulse = this._calculateImpulse(curUpdatedPos, othUpdatedPos, current.vel, other.vel, current.mass, other.mass);
+    //             prop = [othI];
+    //         }
+
+    //         let angle = impulse.angle;
+    //         let min = angle - 90;
+    //         let max = angle + 90;
+
+    //         this._propogate(curI, impulse, prop, min, max);
+    //     }
+    // }
+
+    _propogate(curI, impulse, prop, min, max) {
         let currentObj = this._colObjects[curI];
         let current = currentObj.object;
+        let unprop = this._getUnpropogated(currentObj, prop);
 
-        // if object did not move, do not calculate anything 
-        if (current.vel == 0) {
+        currentObj.addVel(impulse);
+        prop.push(curI);
+
+        for (let i = 0; i < unprop.length; i++) {
+            let othI = activeCols[i];
+            let impulse;
+
+            if (othI == this._bound.index) {
+                break;
+            } else {
+                let otherObj = this._colObjects[othI];
+                let other = otherObj.object;
+
+                let radiusVector = new Vector(other.x - current.x, other.y - current.y);
+                impulse = projectVector(curVelChange, radiusVector);
+
+                let angle = impulse.angle;
+                if (angle > min && angle < max) {
+                    this._propogate(othI, impulse, prop, min, max);
+                }
+            }
+        }
+
+        prop.pop();
+    }
+
+
+
+    _updateVelocity(curI, propogated, curVelChange) {
+        // return if index is out of bounds
+        if (curI < 0) {
+            console.log("_updateVelocity passed illegal index: " + curI);
             return;
         }
 
-        // get current's updated position
-        let curUpdatedPos = current.pos.add(currentObj.change.pos);
+        // get the current object
+        let currentObj = this._colObjects[curI];
+        let current = currentObj.object;
 
-        // add current index to propogated, so that it does not propogate the impulse back to itself
-        let propogated = [curI];
-        let activeCols = currentObj.activeCols;
+        // update propogated with current and find unpropogated collisions
+        let unprop;
+        if (defined(propogated)) {
+            propogated.push(curI);
+            unprop = this._getUnpropogated(currentObj, propogated);
+        } else {
+            propogated = [curI];
+            unprop = currentObj.activeCols;
+        }
+        
 
-        for (let j = 0; j < activeCols.length; j++) {
-            // get the other object involved in the collision
-            let indexCol = activeCols[j];
-            let impulse;
+        if (defined(curVelChange)) { // if propogating velocity from other object
+            currentObj.addVel(curVelChange);
 
-            if (indexCol == this._bound.index) {
-                let sides = currentObj.boundCols;
-                impulse = this._calculateBoundImpulse(sides, current.vel);
-                currentObj.addVel(impulse);
-            } else {
-                let otherObj = this._colObjects[indexCol];
-                let other = otherObj.object;
+            for (let i = 0; i < unprop.length; i++) {
+                let othI  = unprop[i];
+                if (othI != this._bound.index) {
+                    let otherObj = this._colObjects[othI];
+                    let other = otherObj.object;
 
-                // get other's updated position
-                let othUpdatedPos = other.pos.add(otherObj.change.pos);
+                    let radiusVector = new Vector(other.x - current.x, other.y - current.y);
+                    let projVelChange = projectVector(curVelChange, radiusVector);
 
-                // calculate the impulse from current to other
-                impulse = this._calculateImpulse(othUpdatedPos, curUpdatedPos, other.vel, current.vel, other.mass, current.mass);
+                    this._updateVelocity(othI, propogated, projVelChange);
+                } else {
+                    this._updateBoundVelocity(curI, othI, currentObj, curVelChange);
+                }
+            }
+        } else { // if object is not stationary
+            for (let i = 0; i < unprop.length; i++) {
+                let othI  = unprop[i];
+                if (othI != this._bound.index) {
+                    let otherObj = this._colObjects[othI];
+                    let other = otherObj.object;
 
-                // add other to list of propogated, so that it does not propogate impulse back to itself
-                propogated.push(indexCol);
+                    let curUpdatedPos = current.pos.add(currentObj.change.pos);
+                    let othUpdatedPos = other.pos.add(otherObj.change.pos);
+                    //let impulse = this._calculateImpulse(curUpdatedPos, othUpdatedPos, current.vel, other.vel, current.mass, other.mass);
+                    let impulse = this._calculateImpulse(othUpdatedPos, curUpdatedPos, other.vel, current.vel, other.mass, current.mass);
 
-                // propogate impulse to all of other's collisions
-                this._propogate(otherObj, impulse, propogated);
+                    propogated.push(othI);
+
+                    this._updateVelocity(othI, propogated, impulse);
+                } else {
+                    this._updateBoundVelocity(curI, othI, currentObj, current.vel);
+                }
             }
         }
+    }
+
+    _updateBoundVelocity(curI, othI, currentObj, vel) {
+        let sides = currentObj.boundCols;
+        let impulse = this._calculateBoundImpulse(sides, vel);
+        this._updateVelocity(curI, [othI], impulse);
+    }
+
+    _calculateBoundImpulse(sides, curVel) {
+        let curChange = new Vector(0,0);
+        for (let i = 0; i < sides.length; i++) {
+            let curSide = sides[i];
+            if (curSide === "top" || curSide === "bottom") {
+                curChange.addTo( new Vector(0, curVel.y * -2) );
+            } 
+            if (curSide === "right" || curSide === "left") {
+                curChange.addTo( new Vector(curVel.x * -2, 0) );
+            }
+        }
+        return curChange;
     }
 
     // calcultes impulse between two objects
@@ -364,54 +481,6 @@ class NarrowCollisionEngine {
         return curChange;
     }
 
-    _calculateBoundImpulse(sides, curVel) {
-        let curChange = new Vector(0,0);
-        for (let i = 0; i < sides.length; i++) {
-            let curSide = sides[i];
-            if (curSide === "top" || curSide === "bottom") {
-                curChange.addTo( new Vector(0, curVel.y * -2) );
-            } else {
-                curChange.addTo( new Vector(curVel.x * -2, 0) );
-            }
-        }
-        return curChange;
-    }
-
-    // takes a velocity vector and a list of already propogated indeces
-    // propogated the velocity vector to all unpropogated active collisions
-    _propogate(currentObj, velVector, propogated) {
-        // update the current object
-        currentObj.addVel(velVector);
-        let current = currentObj.object;
-
-        // get array of all unpropogated collisions
-        let unpropCols = this._getUnpropogated(currentObj, propogated);
-        let numUnpropCols = unpropCols.length;
-
-        // append unpropCols to propogated
-        for (let i = 0; i < numUnpropCols; i++) {
-            propogated.push(unpropCols[i]);
-        }
-
-        // propogate the velocity vector to all unpropogated active collisions
-        for (let i = 0; i < numUnpropCols; i++) {
-            let indexCol = unpropCols[i];
-
-            let otherObj = this._colObjects[indexCol];
-            let other = otherObj.object; // where bug happens ===============================================
-
-            let radiusVector = new Vector(other.x - current.x, other.y - current.y);
-            let projVector = projectVector(velVector, radiusVector);
-
-            this._propogate(otherObj, projVector, propogated);
-        }
-
-        // remove unpropCols from propogated
-        for (let i = 0; i < numUnpropCols; i++) {
-            propogated.pop();
-        }
-    }
-
     // returns a list of active collisions that have not been already propogated
     _getUnpropogated(currentObj, propogated) {
         let activeCols = currentObj.activeCols;
@@ -420,6 +489,7 @@ class NarrowCollisionEngine {
         
         for (let i = 0; i < activeCols.length; i++) {
             let indexCol = activeCols[i];
+
             for (let j = 0; j < propogated.length; j++) {
                 // if indeces are the same, then curI has already been propogated
                 if (indexCol == propogated[j]) {
@@ -439,15 +509,32 @@ class NarrowCollisionEngine {
     }
 
     // TESTING
-    _calculateKE() {
+    _calculateTotalKE() {
         let sum = 0;
         for (let i = 0; i < this._size; i++) {
             let initialVel = this._colObjects[i].object.vel;
             let velChange = this._colObjects[i].change.vel;
             let vel = initialVel.add(velChange);
             let mass = this._colObjects[i].object.mass;
-            sum += 0.5 * mass * vel.mag * vel.mag;
+            sum += this._calculateKE(vel, mass);
         }
         return sum;
     }
+
+    _calculateKE(velocity, mass) {
+        return 0.5 * mass * Math.pow(velocity.mag, 2);
+    }
 }
+
+
+
+            
+            // TEST
+            // let othUpdatedPos = other.pos.add( otherObj.change.pos );
+            // let curUpdatedPos = current.pos.add( currentObj.change.pos );
+            // let dist = distance(othUpdatedPos, curUpdatedPos);
+            // let radSum = current.rad + other.rad;
+
+            // if (dist < radSum) {
+            //     console.log("overlapping");
+            // }

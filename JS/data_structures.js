@@ -40,7 +40,7 @@ class Vector {
     }
 
     toString() {
-        return "(" + round(this.x, 3) + ", " + round(this.y, 3) + ")";
+        return "(" + this._x + ", " + this._y + ")";
     }
 }
 
@@ -68,13 +68,25 @@ class ChangesPosVel {
         this.addAcc(changesOther.acc);
     }
     addPos(posVector) {
-        (defined(this._position)) ? this._position.addTo(posVector) : this._position = posVector;
+        // if (defined(posVector)) {
+        //     posVector.round(5);
+        // }
+        
+        (defined(this._position)) ? this._position.addTo( posVector ) : this._position = posVector;
     }
     addVel(velVector) {
-        (defined(this._velocity)) ? this._velocity.addTo(velVector) : this._velocity = velVector;
+        // if (defined(velVector)) {
+        //     velVector.round(5);
+        // }
+
+        (defined(this._velocity)) ? this._velocity.addTo( velVector ) : this._velocity = velVector;
     }
     addAcc(accVector) {
-        (defined(this._acceleration)) ? this._acceleration.addTo(accVector) : this._acceleration = accVector;
+        // if (defined(accVector)) {
+        //     accVector.round(5);
+        // }
+
+        (defined(this._acceleration)) ? this._acceleration.addTo( accVector ) : this._acceleration = accVector;
     }
 
     clear() {
@@ -238,13 +250,13 @@ class GameObject {
     }
 
     get x() {
-        return this._circle.pos.x + this._circle.rad;
+        return this._circle.pos.x;
     }
     get y() {
-        return this._circle.pos.y + this._circle.rad;
+        return this._circle.pos.y;
     }
     get pos() {
-        return this._circle.pos.add(new Vector(this._circle.rad, this._circle.rad));
+        return this._circle.pos;
     }
     get rad() {
         return this._circle.rad;

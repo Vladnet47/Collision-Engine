@@ -43,19 +43,13 @@ var events = {
     }
 };
 
-var systemTime = {
-    lastUpdate: Date.now(),
-
-    // calculates the time between frames, in seconds
-    getDeltaTime: function() {
-        let currentUpdate = Date.now();
-        let deltaTime = currentUpdate - systemTime.lastUpdate;
-        systemTime.lastUpdate = currentUpdate;
-    
-        return deltaTime / 1000;
-    },
+function updateDeltaT() {
+    let currentTime = Date.now();
+    deltaT = (currentTime - lastUpdate) / 1000;
+    lastUpdate = currentTime;
 }
 
+var lastUpdate = Date.now();
 var deltaT = 0;
 
 var pause = false;
@@ -75,7 +69,7 @@ $(document).ready(function() {
         context.clearRect(0, 0, canvas.width, canvas.height);
 
         // get deltaTime and keyboard events
-        deltaT = systemTime.getDeltaTime();
+        updateDeltaT();
         events.checkEvents();
 
         // press space to unpause
