@@ -16,7 +16,8 @@ class Vector {
     }
     // returns counter clockwise from the x-axis
     get angle() {
-        return Math.atan(this._y / this._x) * -180 / Math.PI;
+        let angle = Math.atan2(this._y, this._x) * 180 / Math.PI;
+        return -((360 + angle) % 360);
     }
 
     // returns sum of this vector and other
@@ -68,24 +69,12 @@ class ChangesPosVel {
         this.addAcc(changesOther.acc);
     }
     addPos(posVector) {
-        // if (defined(posVector)) {
-        //     posVector.round(5);
-        // }
-        
         (defined(this._position)) ? this._position.addTo( posVector ) : this._position = posVector;
     }
     addVel(velVector) {
-        // if (defined(velVector)) {
-        //     velVector.round(5);
-        // }
-
         (defined(this._velocity)) ? this._velocity.addTo( velVector ) : this._velocity = velVector;
     }
     addAcc(accVector) {
-        // if (defined(accVector)) {
-        //     accVector.round(5);
-        // }
-
         (defined(this._acceleration)) ? this._acceleration.addTo( accVector ) : this._acceleration = accVector;
     }
 
@@ -122,9 +111,6 @@ class CollisionObject {
         this._gameObject = gameObject;
         this._index = envirIndex;
 
-        // information about bounding rectangle collisions
-        this._sides = [];
-
         // information about other objects
         this._tValues = []; // tValues of collisions
         this._numPotentialCols = 0;
@@ -157,9 +143,6 @@ class CollisionObject {
     get activeCols() {
         return this._activeCols;
     }
-    get boundCols() {
-        return this._sides;
-    }
     get change() {
         return this._change;
     }
@@ -170,9 +153,6 @@ class CollisionObject {
     }
     addVel(velVector) {
         this._change.addVel(velVector);
-    }
-    addBoundCols(sides) {
-        this._sides = sides;
     }
 
     // has to do with collisions
@@ -230,6 +210,10 @@ class Circle {
         return this._radius;
     }
 
+    resize(factor) {
+        this._radius *= factor;
+    }
+
     toString() {
         return "Circle radius = " + this._radius + " and position = " + this._position.toString();
     }
@@ -243,10 +227,20 @@ class GameObject {
         this._color = color;
         this._velocity = velocity;
         this._mass = mass;
+
         this._properties = {
             collidable: false, // GameObject will be scanned for collisions
-            colType: { ground: false } // Used to handle GameObject-specific collisions
+            bound: false,
+            lifespan: new Timer("inf"),
+            dead: false,
         };
+
+        this._explosion = {
+            exploding: false,
+            color: "rgb(255, 102, 0)",
+            factor: 2.0,
+            timer: new Timer(3),
+        }
     }
 
     get x() {
@@ -273,8 +267,17 @@ class GameObject {
     get collidable() {
         return this._properties.collidable;
     }
-    get listCols() {
-        return this._properties.colType;
+    get bound() {
+        return this._properties.bound;
+    }
+    get lifespan() {
+        return this._properties.lifespan;
+    }
+    get dead() {
+        return this._properties.dead;
+    }
+    get explosion() {
+        return this._explosion;
     }
 
     set color(color) {
@@ -283,22 +286,37 @@ class GameObject {
     set collidable(state) {
         this._properties.collidable = state;
     }
-
-    setCollision(type, state) {
-        this._properties.colType[type] = state;
+    set bound(state) {
+        this._properties.bound = state;
     }
+    set dead(state) {
+        this._properties.dead = state;
+    } 
+
     addVel(change) {
         this._velocity.addTo(change);
     }
+
     addPos(change) {
         this._circle.pos.addTo(change);
     }
+
+    explode() {
+        this._collidable = false;
+        this._explosion.exploding = true;
+        this._velocity.addTo( multiplyVector(this._velocity, -1) );
+        this._color = this._explosion.color;
+        this._circle.resize( this._explosion.factor );
+    }
+
+    subDuration(value) {
+        this._properties.duration -= value;
+    }
+
     behave() {
         return new ChangesPosVel();
     }
-    collided() {
-        return new ChangesPosVel();
-    }
+    collided() {}
     toString() {
         return this.circle.toString();
     }

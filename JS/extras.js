@@ -704,3 +704,66 @@ function getSign(value) {
     }
     return sign;
 }
+
+
+
+_updateVelocity2(curI, propogated, curVelChange) {
+    // return if index is out of bounds
+    if (curI < 0) {
+        console.log("_updateVelocity passed illegal index: " + curI);
+        return;
+    }
+
+    // get the current object
+    let currentObj = this._colObjects[curI];
+    let current = currentObj.object;
+
+    // update propogated with current and find unpropogated collisions
+    let unprop;
+    if (defined(propogated)) {
+        propogated.push(curI);
+        unprop = this._getUnpropogated(currentObj, propogated);
+    } else {
+        propogated = [curI];
+        unprop = currentObj.activeCols;
+    }
+    
+
+    if (defined(curVelChange)) { // if propogating velocity from other object
+        currentObj.addVel(curVelChange);
+
+        for (let i = 0; i < unprop.length; i++) {
+            let othI  = unprop[i];
+            if (othI != this._bound.index) {
+                let otherObj = this._colObjects[othI];
+                let other = otherObj.object;
+
+                let radiusVector = new Vector(other.x - current.x, other.y - current.y);
+                let projVelChange = projectVector(curVelChange, radiusVector);
+
+                this._updateVelocity(othI, propogated, projVelChange);
+            } else {
+                this._updateBoundVelocity(curI, othI, currentObj, curVelChange);
+            }
+        }
+    } else { // if object is not stationary
+        for (let i = 0; i < unprop.length; i++) {
+            let othI  = unprop[i];
+            if (othI != this._bound.index) {
+                let otherObj = this._colObjects[othI];
+                let other = otherObj.object;
+
+                let curUpdatedPos = current.pos.add(currentObj.change.pos);
+                let othUpdatedPos = other.pos.add(otherObj.change.pos);
+                //let impulse = this._calculateImpulse(curUpdatedPos, othUpdatedPos, current.vel, other.vel, current.mass, other.mass);
+                let impulse = this._calculateImpulse(othUpdatedPos, curUpdatedPos, other.vel, current.vel, other.mass, current.mass);
+
+                propogated.push(othI);
+
+                this._updateVelocity(othI, propogated, impulse);
+            } else {
+                this._updateBoundVelocity(curI, othI, currentObj, current.vel);
+            }
+        }
+    }
+}

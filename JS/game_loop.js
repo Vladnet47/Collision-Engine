@@ -43,6 +43,24 @@ var events = {
     }
 };
 
+class Timer {
+    constructor(duration) {
+        this._duration = duration;
+    }
+
+    reset(duration) {
+        this._duration = duration;
+    }
+
+    increment(change) {
+        if (!isNaN(this._duration)) {
+            this._duration -= change;
+            return this._duration > 0;
+        }
+        return true;
+    }
+}
+
 function updateDeltaT() {
     let currentTime = Date.now();
     deltaT = (currentTime - lastUpdate) / 1000;
@@ -60,9 +78,13 @@ $(document).ready(function() {
     let canvas = initCanvas();
     let context = canvas.getContext('2d');
     
-    let envir = new Environment(canvas);
-    envir.initTest2();
+    let envir = new Environment();
+    let init = new Initialization(envir, canvas);
+    init.general();
 
+    // let arr = [0, 1, 2, ,4, 5,6,7,8,9,10];
+    // let indeces = [1,3,6];
+    // console.log(arr[indeces]);
     loop();
 
     function loop() {

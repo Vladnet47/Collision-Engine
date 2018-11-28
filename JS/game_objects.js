@@ -50,6 +50,7 @@ class Player extends GameObject {
         let changes = new ChangesPosVel();
         return changes;
     }
+
     // locks speed at maximum
     reduce(changes) {
         if (this.vel.mag > this.traits.move.maxSpeed) {
@@ -57,8 +58,27 @@ class Player extends GameObject {
         }
         return changes;
     }
-    collided(type, segment) {
-        GameObject.prototype.collided.call(this);
+
+    collided(other) {
+    }
+}
+
+class Planet extends GameObject {
+    constructor(circle, color, velocity, mass) {
+        super(circle, color, velocity, mass);
+    }
+}
+
+class Meteor extends GameObject {
+    constructor(circle, color, velocity, mass) {
+        super(circle, color, velocity, mass);
+        this._properties.lifespan.reset(5);
+    }
+
+    collided(other) {
+        if (other instanceof Player) {
+            this._properties.dead = true;
+        }
     }
 }
 

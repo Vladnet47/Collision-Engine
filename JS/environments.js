@@ -1,187 +1,22 @@
 // ############################################ ENVIRONMENT ############################################ //
 
 class Environment {
-    constructor(canvas) {
+    constructor() {
         this._gameObjectsCurrent = [];
         this._gameObjectsNext = [];
         this._nObjects = 0;
         this._narrowColEngine;
-        this._broadColEngine;
         this._globalEffects = {
-            gravity: { on: false, strength: 1.0 }
-        };
-
-        this._collisionProps = {
-            width: canvas.width,
-            height: canvas.height,
+            gravity: { on: false, constant: 500 }
         };
     }
 
-    init() {
-        this._globalEffects.gravity.on = false;
-        this._collisionProps.onUniformGrid = false;
-
-        let player = new Player(new Circle(new Vector(430, 100), 30), 'rgb(0, 153, 255)', new Vector(0, 0), 100);
-        player.collidable = true;
-
-        let gam1 = new GameObject(new Circle(new Vector(600, 300), 60), 'rgb(51, 204, 51)', new Vector(0, 0), 1000);
-        gam1.collidable = true;
-
-        let gam2 = new GameObject(new Circle(new Vector(500, 500), 10), 'rgb(51, 204, 51)', new Vector(0, 0), 100);
-        gam2.collidable = true;
-
-        let gam3 = new GameObject(new Circle(new Vector(400, 300, 20), 20), 'rgb(51, 204, 51)', new Vector(0, 0), 80);
-        gam3.collidable = true;
-
-        let gam4 = new GameObject(new Circle(new Vector(200, 200), 40), 'rgb(51, 204, 51)', new Vector(0, 0), 60);
-        gam4.collidable = true;
-
-        this._gameObjectsNext.push(player);
-        this._gameObjectsNext.push(gam1);
-        //this._gameObjectsNext.push(gam2);
-        //this._gameObjectsNext.push(gam3);
-        //this._gameObjectsNext.push(gam4);
+    init(objects, engine, gravity, pauseOn) {
+        this._gameObjectsNext = objects;
+        this._narrowColEngine = engine;
+        this._globalEffects.gravity.on = gravity;
         this._nObjects = this._gameObjectsNext.length;
-
-        this._narrowColEngine = new NarrowCollisionEngine();
-        this._narrowColEngine.toggleBound(new Vector(0,0), this._collisionProps.width, this._collisionProps.height);
-    }
-
-    initTest1() {
-        let gam1 = this._createTestObject2(new Vector(100, 400), new Vector(50, 0), 50, 1);
-        let gam2 = this._createTestObject2(new Vector(500, 400), new Vector(-50, 0), 50, 1);
-        let gam3 = this._createTestObject2(new Vector(300, 400), new Vector(0, 0), 50, 1);
-        let gam4 = this._createTestObject2(new Vector(300, 200), new Vector(0, 50), 50, 1);
-        let gam5 = this._createTestObject2(new Vector(700, 250), new Vector(-100, 0), 50, 1);
-        let gam6 = this._createTestObject2(new Vector(100, 100), new Vector(30, 100), 50, 1);
-        let gam7 = this._createTestObject2(new Vector(800, 150), new Vector(0, 50), 50, 1);
-        let gam8 = this._createTestObject2(new Vector(800, 450), new Vector(0, -50), 50, 1);
-
-        this._gameObjectsNext.push(gam1);
-        this._gameObjectsNext.push(gam2);
-        this._gameObjectsNext.push(gam3);
-        this._gameObjectsNext.push(gam4);
-        this._gameObjectsNext.push(gam5);
-        this._gameObjectsNext.push(gam6);
-        this._gameObjectsNext.push(gam7);
-        this._gameObjectsNext.push(gam8);
-
-        this._nObjects = this._gameObjectsNext.length;
-
-        this._narrowColEngine = new NarrowCollisionEngine();
-        this._narrowColEngine.toggleBound(new Vector(0,0), this._collisionProps.width, this._collisionProps.height);
-
-
-        pause = true;
-    }
-
-    initTest2() {
-        let player = new Player(new Circle(new Vector(430, 100), 30), 'rgb(0, 153, 255)', new Vector(0, 0), 20);
-        player.collidable = true;
-
-        let gam1 = this._createTestObject2(new Vector(100, 400), new Vector(50, 0), 30, 10);
-        let gam2 = this._createTestObject2(new Vector(500, 400), new Vector(-50, 0), 30, 10);
-        let gam3 = this._createTestObject2(new Vector(300, 400), new Vector(0, 0), 60, 100);
-        let gam4 = this._createTestObject2(new Vector(300, 200), new Vector(0, 50), 10, 5);
-        let gam5 = this._createTestObject2(new Vector(700, 250), new Vector(-200, 0), 40, 80);
-        let gam6 = this._createTestObject2(new Vector(100, 100), new Vector(30, 100), 40, 80);
-        let gam7 = this._createTestObject2(new Vector(800, 150), new Vector(0, 50), 100, 300);
-        let gam8 = this._createTestObject2(new Vector(800, 450), new Vector(0, -50), 60, 100);
-
-        this._gameObjectsNext.push(player);
-        this._gameObjectsNext.push(gam1);
-        this._gameObjectsNext.push(gam2);
-        this._gameObjectsNext.push(gam3);
-        this._gameObjectsNext.push(gam4);
-        this._gameObjectsNext.push(gam5);
-        this._gameObjectsNext.push(gam6);
-        this._gameObjectsNext.push(gam7);
-        this._gameObjectsNext.push(gam8);
-
-        this._nObjects = this._gameObjectsNext.length;
-
-        this._narrowColEngine = new NarrowCollisionEngine();
-        this._narrowColEngine.toggleBound(new Vector(0,0), this._collisionProps.width, this._collisionProps.height);
-
-        pause = true;
-    }
-
-    initTest3() {
-        let gam1 = this._createTestObject2(new Vector(100, 100), new Vector(50, 50), 30, 10);
-        let gam2 = this._createTestObject2(new Vector(500, 100), new Vector(-50, 50), 30, 10);
-        let gam3 = this._createTestObject2(new Vector(100, 500), new Vector(50, -50), 30, 10);
-        let gam4 = this._createTestObject2(new Vector(500, 500), new Vector(-50, -50), 30, 10);
-
-        this._gameObjectsNext.push(gam1);
-        this._gameObjectsNext.push(gam2);
-        this._gameObjectsNext.push(gam3);
-        this._gameObjectsNext.push(gam4);
-
-        this._nObjects = this._gameObjectsNext.length;
-
-        this._narrowColEngine = new NarrowCollisionEngine();
-        this._narrowColEngine.toggleBound(new Vector(0,0), this._collisionProps.width, this._collisionProps.height);
-
-        pause = true;
-    }
-
-    initTest4() {
-        let gam1 = this._createTestObject2(new Vector(500, 300), new Vector(0, 1), 10, 400);
-        let gam2 = this._createTestObject2(new Vector(525, 300), new Vector(0, 1), 10, 400);
-        let gam3 = this._createTestObject2(new Vector(100, 300), new Vector(5000, 0), 10, 5);
-
-        this._gameObjectsNext.push(gam1);
-        this._gameObjectsNext.push(gam2);
-        this._gameObjectsNext.push(gam3);
-
-        this._nObjects = this._gameObjectsNext.length;
-
-        this._narrowColEngine = new NarrowCollisionEngine();
-        this._narrowColEngine.toggleBound(new Vector(0,0), this._collisionProps.width, this._collisionProps.height);
-
-        pause = true;
-    }
-
-    initTest5() {
-        let player = new Player(new Circle(new Vector(430, 100), 30), 'rgb(0, 153, 255)', new Vector(0, 0), 20);
-        player.collidable = true;
-
-        let gam = new GameObject(new Circle(new Vector(400, 400), 120), 'rgb(51, 204, 51)', new Vector(0, 0), 1000000);
-        gam.collidable = true;
-
-        this._gameObjectsNext.push(player);
-        this._gameObjectsNext.push(gam);
-
-        this._nObjects = this._gameObjectsNext.length;
-
-        this._narrowColEngine = new NarrowCollisionEngine();
-        this._narrowColEngine.toggleBound(new Vector(0,0), this._collisionProps.width, this._collisionProps.height);
-
-        pause = true;
-    }
-
-    initTest6() {
-        let gam1 = this._createTestObject2(new Vector(300, 200), new Vector(0, 0), 49, 400);
-        let gam2 = this._createTestObject2(new Vector(300, 500), new Vector(0, -200), 49, 1000);
-        let gam3 = this._createTestObject2(new Vector(300, 100), new Vector(0, 0), 50, 400);
-
-        this._gameObjectsNext.push(gam1);
-        this._gameObjectsNext.push(gam2);
-        this._gameObjectsNext.push(gam3);
-
-        this._nObjects = this._gameObjectsNext.length;
-
-        this._narrowColEngine = new NarrowCollisionEngine();
-        this._narrowColEngine.toggleBound(new Vector(0,0), this._collisionProps.width, this._collisionProps.height);
-
-        pause = true;
-    }
-
-    _createTestObject2(position, velocity, size, mass) {
-        let obj = new GameObject(new Circle(position, size), 'rgb(51, 204, 51)', velocity, mass);
-        obj.collidable = true;
-
-        return obj;
+        pause = pauseOn;
     }
 
     // Calculates the next position of each GameObject in the environment
@@ -194,7 +29,7 @@ class Environment {
         this.collide(changesCurrent);
         this.updateChanges(changesCurrent);
 
-        this._gameObjectsNext = this._gameObjectsCurrent;
+        this.updateNext();
     }
 
     initChanges() {
@@ -210,6 +45,31 @@ class Environment {
 
             this.updateVelocity(current, change);
             this.updatePosition(current, change);
+        }
+    }
+
+    updateNext() {
+        let number = this._nObjects;
+        for (let i = 0; i < number; i++) {
+            let current = this._gameObjectsCurrent[i];
+
+            // if lifespan has exceeded, mark as dead
+            if (!current.lifespan.increment(deltaT)) {
+                current.dead = true;
+            }
+
+            // if current is dead, create an explosion in its place, then remove it from the gameObjects list
+            if (current.dead) {
+                let exp = current.explosion;
+                if (!exp.exploding) {
+                    current.explode();
+                } else if (!exp.timer.increment(deltaT)) {
+                    this._nObjects--;
+                    continue;
+                }
+            } 
+            
+            this._gameObjectsNext.push(current);
         }
     }
 
@@ -257,9 +117,16 @@ class Environment {
     behave(changesCurrent) {
         for (let i = 0; i < this._nObjects; i++) {
             let current = this._gameObjectsCurrent[i];
+
+            // if current is dead (just an explosion), do not update anything
+            if (current.dead) { continue; }
+
             let change = changesCurrent[i];
 
             // GLOBAL BEHAVIOR
+            if (this._globalEffects.gravity.on) {
+                change.add(this._updateGravity(i, current));
+            }
 
             // INDIVIDUAL BEHAVIOR
             change.add(current.behave());
@@ -277,7 +144,12 @@ class Environment {
 
         for (let i = 0; i < this._nObjects; i++) {
             for (let j = i + 1; j < this._nObjects; j++) {
-                this._narrowColEngine.check(i, this._gameObjectsCurrent[i], j, this._gameObjectsCurrent[j]);
+                let current = this._gameObjectsCurrent[i];
+                let other = this._gameObjectsCurrent[j];
+
+                if (!current.dead && !other.dead) {
+                    this._narrowColEngine.check(i, current, j, other);
+                }
             }
         }
         
@@ -287,6 +159,29 @@ class Environment {
         for (let i = 0; i < result.length; i++) {
             changesCurrent[ result[i].index ].add( result[i].change );
         }
+    }
+
+    _updateGravity(i, current) {
+        let change = new ChangesPosVel();
+        for (let j = 0; j < this._nObjects; j++) {
+            if (i != j) {
+                let other = this._gameObjectsCurrent[j];
+                let dist = other.pos.add( multiplyVector(current.pos, -1) );
+                let mag = dist.mag;
+
+                if (mag > (current.rad + other.rad + 0.01)) {
+                    let massSum = current.mass + other.mass;
+                    let accel = this._globalEffects.gravity.constant * massSum / (current.mass * Math.pow(mag, 2));
+                    let vectorResult = vectorToXY(accel, dist.angle)
+                    change.addAcc(vectorResult);
+                }
+            }
+        }
+        return change;
+    }
+
+    _explode(i, explosionType, duration) {
+
     }
 
     // Draws each GameObject in the environment
