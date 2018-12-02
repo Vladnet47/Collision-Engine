@@ -1,3 +1,5 @@
+'use strict';
+
 // GLOBAL VARIABLES
 
 var events = {
@@ -45,19 +47,21 @@ var events = {
 
 class Timer {
     constructor(duration) {
-        this._duration = duration;
+        this._duration = duration * 1000;
+        this._startTime = lastUpdate;
     }
 
-    reset(duration) {
-        this._duration = duration;
+    reset() {
+        this._startTime = lastUpdate;
     }
 
-    increment(change) {
-        if (!isNaN(this._duration)) {
-            this._duration -= change;
-            return this._duration > 0;
-        }
-        return true;
+    set(duration) {
+        this._duration = duration * 1000;
+        this._startTime = lastUpdate;
+    }
+
+    stop() {
+        return !isNaN(this._duration) && (lastUpdate - this._startTime >= this._duration);
     }
 }
 
@@ -75,24 +79,32 @@ var pause = false;
 // ############################################ GAME LOOP ############################################ //
 
 $(document).ready(function() {
+    // initialize canvas
     let canvas = initCanvas();
     let context = canvas.getContext('2d');
     
-    let envir = new Environment();
-    let init = new Initialization(envir, canvas);
-    init.general();
+    // initialize control and environment
+    let control = new Initialization(canvas);
+    let envir = control.load("test");
 
-    // let arr = [0, 1, 2, ,4, 5,6,7,8,9,10];
-    // let indeces = [1,3,6];
-    // console.log(arr[indeces]);
+    // initialize spawn timers
+    let asteroidTimer = new Timer(1);
+
+    events.checkEvents();
+
+    // start the game loop
     loop();
 
     function loop() {
+        if (!defined(envir)) {
+            console.log("Environment is not defined");
+            return;
+        }
+
         context.clearRect(0, 0, canvas.width, canvas.height);
 
         // get deltaTime and keyboard events
         updateDeltaT();
-        events.checkEvents();
 
         // press space to unpause
         if (pause && events.spaceDown) { 
@@ -104,15 +116,13 @@ $(document).ready(function() {
             envir.update();
         }
         envir.render(context);
-        requestAnimationFrame(loop);
 
-        try {
-            
-        } catch (err) {
-            console.log( err.message );
-        } finally {
-            
-        }        
+        if (asteroidTimer.stop()) {
+            control.spawnAsteroids();
+            asteroidTimer.set( Math.random() * (2-1) + 1 );
+        }
+        
+        requestAnimationFrame(loop);        
     }
 })
 

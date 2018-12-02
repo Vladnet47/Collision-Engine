@@ -1,3 +1,5 @@
+'use strict';
+
 // VECTOR ---------------------------------------------------------------------------------------------
 class Vector {
     constructor(x, y) {
@@ -14,11 +16,6 @@ class Vector {
     get mag() {
         return magnitude(this._x, this._y);
     }
-    // returns counter clockwise from the x-axis
-    get angle() {
-        let angle = Math.atan2(this._y, this._x) * 180 / Math.PI;
-        return -((360 + angle) % 360);
-    }
 
     // returns sum of this vector and other
     add(other) {
@@ -28,6 +25,7 @@ class Vector {
             return new Vector(this._x, this._y);
         }
     }
+
     // adds other vector to this vector
     addTo(other) {
         if (defined(other)) {
@@ -35,6 +33,7 @@ class Vector {
             this._y += other.y;
         } 
     }
+    
     clear() {
         this._x = 0;
         this._y = 0;
@@ -134,9 +133,6 @@ class CollisionObject {
     get noActiveCols() {
         return this._numActiveCols == 0;
     }
-    get tValues() {
-        return this._tValues;
-    }
     get potentialCols() {
         return this._potentialCols;
     }
@@ -197,6 +193,27 @@ class CollisionObject {
     }
 }
 
+class Rectangle {
+    constructor(position, width, height) {
+        this._position = position;
+        this._width = width;
+        this._height = height;
+    }
+
+    get x() {
+        return this._position.x;
+    }
+    get y() {
+        return this._position.y;
+    }
+    get width() {
+        return this._width;
+    }
+    get height() {
+        return this._height;
+    }
+}
+
 class Circle {
     constructor(position, radius) {
         this._position = position;
@@ -232,14 +249,15 @@ class GameObject {
             collidable: false, // GameObject will be scanned for collisions
             bound: false,
             lifespan: new Timer("inf"),
-            dead: false,
+            explode: false,
+            remove: false,
         };
 
         this._explosion = {
             exploding: false,
             color: "rgb(255, 102, 0)",
             factor: 2.0,
-            timer: new Timer(3),
+            timer: new Timer(1),
         }
     }
 
@@ -273,8 +291,11 @@ class GameObject {
     get lifespan() {
         return this._properties.lifespan;
     }
-    get dead() {
-        return this._properties.dead;
+    get remove() {
+        return this._properties.remove;
+    }
+    get explode() {
+        return this._properties.explode;
     }
     get explosion() {
         return this._explosion;
@@ -289,8 +310,11 @@ class GameObject {
     set bound(state) {
         this._properties.bound = state;
     }
-    set dead(state) {
-        this._properties.dead = state;
+    set remove(state) {
+        this._properties.remove = state;
+    } 
+    set explode(state) {
+        this._properties.explode = state;
     } 
 
     addVel(change) {
@@ -301,16 +325,13 @@ class GameObject {
         this._circle.pos.addTo(change);
     }
 
-    explode() {
+    causeExplosion() {
         this._collidable = false;
         this._explosion.exploding = true;
+        this._explosion.timer.reset();
         this._velocity.addTo( multiplyVector(this._velocity, -1) );
         this._color = this._explosion.color;
         this._circle.resize( this._explosion.factor );
-    }
-
-    subDuration(value) {
-        this._properties.duration -= value;
     }
 
     behave() {

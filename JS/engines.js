@@ -1,18 +1,20 @@
+'use strict';
+
 class NarrowCollisionEngine {
     constructor() {
         this._size;
         this._colObjects;
-        this._lossConstant = { object: 0.7, bound: 0.1, minImpulse: 100 };
+        this._lossConstant = { object: 0.5, bound: 0.1, minImpulse: 100 };
 
         // bounding rectangle
         this._bound = { top: 0, right: 0, bottom: 0, left: 0, horI: -10, verI: -11 };
     }
 
-    setBoundingRect(x, y, width, height) {
-        this._bound.top = y;
-        this._bound.right = x + width;
-        this._bound.bottom = y + height;
-        this._bound.left = x;
+    setBoundingRect(rect) {
+        this._bound.top = rect.y;
+        this._bound.right = rect.x + rect.width;
+        this._bound.bottom = rect.y + rect.height;
+        this._bound.left = rect.x;
     }
 
     // resets the collision object array
@@ -38,7 +40,7 @@ class NarrowCollisionEngine {
         }
         
         let dist = distance(other.pos, current.pos);
-        let radSum = current.rad + other.rad;
+        let radSum = current.rad + other.rad + 1;
 
         // if the objects are close enough to collide
         if (dist <= (radSum + curVel.mag + othVel.mag)) {
@@ -141,8 +143,8 @@ class NarrowCollisionEngine {
             let sqrtDisc = Math.sqrt(discriminant);
             let denom = 2 * a;
 
-            let t1 = round( (sqrtDisc - b) / denom, 4 ) - 0.0001;
-            let t2 = round( (-sqrtDisc - b) / denom, 4 ) - 0.0001;
+            let t1 = round( (sqrtDisc - b) / denom, 4 );
+            let t2 = round( (-sqrtDisc - b) / denom, 4 );
 
             return (t1 > t2) ? t2 : t1;
         } else {
@@ -277,7 +279,7 @@ class NarrowCollisionEngine {
                 prop.push(othI);
             }
 
-            let angle = impulse.angle;
+            let angle = angleDxDy(impulse.x, impulse.y);
             let min = angle - 90;
             let max = angle + 90;
 
@@ -306,7 +308,7 @@ class NarrowCollisionEngine {
                 let radiusVector = new Vector(other.x - current.x, other.y - current.y);
                 impulse = projectVector(impulse, radiusVector);
 
-                let angle = impulse.angle;
+                let angle = angleDxDy(impulse.x, impulse.y);
                 if (angle > min && angle < max) {
                     this._propogate(othI, otherObj, impulse, prop, min, max);
                 }

@@ -1,3 +1,4 @@
+'use strict';
 
 // SETUP ---------------------------------------------------------------------------------------------
 class Player extends GameObject {
@@ -7,6 +8,7 @@ class Player extends GameObject {
             move: { maxSpeed: 200, accel: 1000 },
             boost: { speed: 500, delay: 3, letGo: false }
         };
+        this.lifespan.set("inf");
     }
     // BEHAVIOR ---------------------------------------------------------------------------------------------
     behave() {
@@ -54,7 +56,7 @@ class Player extends GameObject {
     // locks speed at maximum
     reduce(changes) {
         if (this.vel.mag > this.traits.move.maxSpeed) {
-            changes.addVel( vectorToXY(this.vel.mag - this.traits.move.maxSpeed, -this.vel.angle) );
+            changes.addVel( vectorToXY(this.vel.mag - this.traits.move.maxSpeed, -angleDxDy(this.vel.x, this.vel.y) ) );
         }
         return changes;
     }
@@ -69,15 +71,15 @@ class Planet extends GameObject {
     }
 }
 
-class Meteor extends GameObject {
+class Asteroid extends GameObject {
     constructor(circle, color, velocity, mass) {
         super(circle, color, velocity, mass);
-        this._properties.lifespan.reset(5);
+        this.lifespan.set(3);
     }
 
     collided(other) {
-        if (other instanceof Player) {
-            this._properties.dead = true;
+        if (other instanceof Player || other instanceof Planet) {
+            this.explode = true;
         }
     }
 }

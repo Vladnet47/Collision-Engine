@@ -1,3 +1,5 @@
+'use strict';
+
 // returns true if the value is defined
 function defined(value) {
     return (typeof value !== "undefined");
@@ -11,6 +13,11 @@ function round(value, decimal) {
 // Returns the distance between two points, given as vectors
 function distance(v1, v2) {
     return magnitude(v1.x - v2.x, v1.y - v2.y);
+}
+
+function angleDxDy(dx, dy) {
+    let angle = Math.atan2(dy, dx) * 180 / Math.PI;
+    return -((360 + angle) % 360);
 }
 
 // returns magnitude of hypotenuse, given sides x and y of a right angle triangle
