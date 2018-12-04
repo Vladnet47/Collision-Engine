@@ -34,7 +34,7 @@ function vectorToXY(magnitude, angle) {
 
 // multiplies vector by a scalar
 function multiplyVector(v1, scalar) {
-    return new Vector( v1.x * scalar, v1.y * scalar );
+    return (defined(v1)) ? new Vector( v1.x * scalar, v1.y * scalar ) : v1;
 }
 
 // projects v1 onto v2

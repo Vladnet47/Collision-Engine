@@ -107,10 +107,10 @@ class GameObject {
         this._rectangle.addPos(change);
     }
     behave() {
-        return new ChangesPosVel();
+        return new ChangesToMotion();
     }
     collided() {
-        return new ChangesPosVel();
+        return new ChangesToMotion();
     }
     toString() {
         return this._rectangle;
@@ -121,7 +121,7 @@ class GameObject {
 // class CollisionRecord {
 //     constructor(index) {
 //         this._index = index;
-//         this._changes = new ChangesPosVel();
+//         this._changes = new ChangesToMotion();
 //         this._collisions = [];
 //     }
 
@@ -445,13 +445,13 @@ class collisionGroup {
         }
         // BEHAVIOR ---------------------------------------------------------------------------------------------
         behave() {
-            let changes = new ChangesPosVel();
+            let changes = new ChangesToMotion();
             changes.add(this.jumpPlatformer());
             changes.add(this.movePlatformer());
             return changes;
         }
         movePlatformer() {
-            let changes = new ChangesPosVel();
+            let changes = new ChangesToMotion();
             let playerVelocityX = this.vel.x;
             let playerVelocityABS = Math.abs(playerVelocityX);
             // if player is moving slower than its max speed, pressing the controls will increase speed respectively
@@ -469,7 +469,7 @@ class collisionGroup {
             return changes;
         }
         jumpPlatformer() {
-            let changes = new ChangesPosVel();
+            let changes = new ChangesToMotion();
             // Reset number of jumps once player touches ground
             if (this.colType.ground) {
                 this.traits.jump.curJump = 0;
@@ -582,7 +582,7 @@ class collisionGroup {
             if ( this._narrowColEngine.length == 0) { throw Error("No narrow collision engine in environment"); }
             if ( !gameObject.collidable && !gameObject.physics ) { continue; }
 
-            let changes = new ChangesPosVel();
+            let changes = new ChangesToMotion();
 
             // CALCULATE CHANGE IN VELOCITY/POSITION DUE TO NARROW COLLISION
             for (let indexOth = 0; indexOth < this._gameObjectsCurrent.length; ++indexOth) {

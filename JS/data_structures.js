@@ -33,7 +33,7 @@ class Vector {
             this._y += other.y;
         } 
     }
-    
+
     clear() {
         this._x = 0;
         this._y = 0;
@@ -41,155 +41,6 @@ class Vector {
 
     toString() {
         return "(" + this._x + ", " + this._y + ")";
-    }
-}
-
-// CHANGESPOSVEL ---------------------------------------------------------------------------------------------
-class ChangesPosVel {
-    constructor() {
-        this._position;
-        this._velocity;
-        this._acceleration;
-    }
-
-    get pos() {
-        return this._position;
-    }
-    get vel() {
-        return this._velocity;
-    }
-    get acc() {
-        return this._acceleration;
-    }
-
-    add(changesOther) {
-        this.addPos(changesOther.pos);
-        this.addVel(changesOther.vel);
-        this.addAcc(changesOther.acc);
-    }
-    addPos(posVector) {
-        (defined(this._position)) ? this._position.addTo( posVector ) : this._position = posVector;
-    }
-    addVel(velVector) {
-        (defined(this._velocity)) ? this._velocity.addTo( velVector ) : this._velocity = velVector;
-    }
-    addAcc(accVector) {
-        (defined(this._acceleration)) ? this._acceleration.addTo( accVector ) : this._acceleration = accVector;
-    }
-
-    clear() {
-        this.clearPos();
-        this.clearVel();
-        this.clearAcc();
-    }
-    clearPos() {
-        if (defined(this._position)) {
-            this._position.clear();
-        }
-    }
-    clearVel() {
-        if (defined(this._velocity)) {
-            this._velocity.clear();
-        }
-    }
-    clearAcc() {
-        if (defined(this._acceleration)) {
-            this._acceleration.clear();
-        }
-    }
-
-    toString() {
-        return ("Changes in position = " + this._position.toString() + 
-                ", velocity = " + this._velocity.toString() + 
-                ", and acceleration = " + this._acceleration.toString() );
-    }
-}
-
-class CollisionObject {
-    constructor(gameObject, envirIndex) {
-        this._gameObject = gameObject;
-        this._index = envirIndex;
-
-        // information about other objects
-        this._tValues = []; // tValues of collisions
-        this._numPotentialCols = 0;
-        this._potentialCols = []; // all potential collisions
-
-        this._numActiveCols = 0;
-        this._activeCols = []; // all final collisions
-
-        this._change = new ChangesPosVel();
-    }
-
-    get object() {
-        return this._gameObject;
-    }
-    get index() {
-        return this._index;
-    }
-    get noPotentialCols() {
-        return this._numPotentialCols == 0;
-    }
-    get noActiveCols() {
-        return this._numActiveCols == 0;
-    }
-    get potentialCols() {
-        return this._potentialCols;
-    }
-    get activeCols() {
-        return this._activeCols;
-    }
-    get change() {
-        return this._change;
-    }
-
-    // has to do with changes
-    addPos(posVector) {
-        this._change.addPos(posVector);
-    }
-    addVel(velVector) {
-        this._change.addVel(velVector);
-    }
-
-    // has to do with collisions
-    // inserts information about collision based on tValue, smallest to largest
-    addPotentialCol(t, index) {
-        this._addPotentialCol(t, index, 0, this._numPotentialCols - 1);
-    }
-    _addPotentialCol(t, index, low, high) {
-        let mid = Math.floor((high + low + 1) / 2);
-
-        if (mid > high) {
-            this._tValues.splice(mid, 0, t);
-            this._potentialCols.splice(mid, 0, index);
-            this._numPotentialCols++;
-        } else {
-            let checkT = this._tValues[mid];
-
-            if (t <= checkT) {
-                this._addPotentialCol(t, index, low, mid - 1);
-            } else {
-                this._addPotentialCol(t, index, mid + 1, high);
-            }
-        }
-    }
-
-    getEarliestCol() {
-        if (this._numPotentialCols > 0) {
-            return { t: this._tValues[0], col: this._potentialCols[0] };
-        } else {
-            console.log("CollisionObject.getEarliestCol() no other collision");
-        }
-    }
-    removePotentialCol() {
-        this._tValues.splice(0, 1);
-        this._potentialCols.splice(0, 1);
-        this._numPotentialCols--;
-    }
-
-    addCol(index) {
-        this._activeCols.push(index);
-        this._numActiveCols++;
     }
 }
 
@@ -237,6 +88,67 @@ class Circle {
 }
 
 
+// CHANGESPOSVEL ---------------------------------------------------------------------------------------------
+class ChangesToMotion {
+    constructor() {
+        this._position;
+        this._velocity;
+        this._acceleration;
+    }
+
+    get pos() {
+        return this._position;
+    }
+    get vel() {
+        return this._velocity;
+    }
+    get acc() {
+        return this._acceleration;
+    }
+
+    add(changesOther) { //---------------------------------------------------------------------------TRY TO REMOVE THIS
+        this.addPos(changesOther.pos);
+        this.addVel(changesOther.vel);
+        this.addAcc(changesOther.acc);
+    }
+    addPos(posVector) {
+        (defined(this._position)) ? this._position.addTo( posVector ) : this._position = posVector;
+    }
+    addVel(velVector) {
+        (defined(this._velocity)) ? this._velocity.addTo( velVector ) : this._velocity = velVector;
+    }
+    addAcc(accVector) {
+        (defined(this._acceleration)) ? this._acceleration.addTo( accVector ) : this._acceleration = accVector;
+    }
+
+    clear() {
+        this.clearPos();
+        this.clearVel();
+        this.clearAcc();
+    }
+    clearPos() {
+        if (defined(this._position)) {
+            this._position.clear();
+        }
+    }
+    clearVel() {
+        if (defined(this._velocity)) {
+            this._velocity.clear();
+        }
+    }
+    clearAcc() {
+        if (defined(this._acceleration)) {
+            this._acceleration.clear();
+        }
+    }
+
+    toString() {
+        return ("Changes in position = " + this._position.toString() + 
+                ", velocity = " + this._velocity.toString() + 
+                ", and acceleration = " + this._acceleration.toString() );
+    }
+}
+
 // GAMEOBJECT ---------------------------------------------------------------------------------------------
 class GameObject {
     constructor(circle, color, velocity, mass) {
@@ -244,6 +156,9 @@ class GameObject {
         this._color = color;
         this._velocity = velocity;
         this._mass = mass;
+
+        // changes due to behavior and collision
+        this._changes = new ChangesToMotion();
 
         this._properties = {
             collidable: false, // GameObject will be scanned for collisions
@@ -282,6 +197,9 @@ class GameObject {
     get mass() {
         return this._mass;
     }
+    get changes() {
+        return this._changes;
+    }
     get collidable() {
         return this._properties.collidable;
     }
@@ -315,14 +233,32 @@ class GameObject {
     } 
     set explode(state) {
         this._properties.explode = state;
-    } 
-
-    addVel(change) {
-        this._velocity.addTo(change);
     }
 
-    addPos(change) {
-        this._circle.pos.addTo(change);
+    updateChanges() {
+        // convert acceleration into velocity change and update velocity
+        this._changes.addVel( multiplyVector(this._changes.acc, deltaT) );
+        this._velocity.addTo( this._changes.vel );
+
+        // convert velocity into position change and update position
+        this._changes.addPos( multiplyVector(this._velocity, deltaT) );
+        this.pos.addTo( this._changes.pos );
+
+        // set all changes to motion = zero
+        this._changes.clear();
+    }
+
+    updateVelocity() {
+        this._changes.addVel( multiplyVector(this._changes.acc, deltaT) );
+        this._velocity.addTo( this._changes.vel );
+        this._changes.clearAcc();
+        this._changes.clearVel();
+    }
+
+    updatePosition() {
+        this._changes.addPos( multiplyVector(this._velocity, deltaT) );
+        this.pos.addTo( this._changes.pos );
+        this._changes.clearPos();
     }
 
     causeExplosion() {
@@ -335,10 +271,80 @@ class GameObject {
     }
 
     behave() {
-        return new ChangesPosVel();
+        return new ChangesToMotion();
     }
     collided() {}
     toString() {
         return this.circle.toString();
+    }
+}
+
+class CollisionObject {
+    constructor(gameObject, envirIndex) {
+        this._gameObject = gameObject;
+        this._index = envirIndex;
+
+
+        // information about other objects
+        this._shortestT = 1;
+
+        this._potentialT = []; // tValues of collisions
+        this._potentialCols = []; // all potential collisions
+        this._activeCols = []; // all final collisions
+    }
+
+    get index() {
+        return this._index;
+    }
+    get object() {
+        return this._gameObject;
+    }
+    get change() {
+        return this._gameObject.changes;
+    }
+    get hasPotential() {
+        return this._potentialCols.length > 0;
+    }
+    get hasActive() {
+        return this._activeCols.length > 0;
+    }
+    get activeCols() {
+        return this._activeCols;
+    }
+    get shortestT() {
+        return this._shortestT;
+    }
+
+    addPotential(index, t) {
+        if (!this.hasPotential || t < this._potentialT[0]) {
+            this._shortestT = t;
+        }
+        this._addPotential(index, t, 0, this._potentialCols.length - 1);
+    }
+    addActive(index) {
+        this._activeCols.push(index);
+    }
+
+    popPotential() {
+        let t = this._potentialT.shift();
+        let i = this._potentialCols.shift();
+        return { t: t, i: i };
+    }
+
+    _addPotential(index, t, low, high) {
+        let mid = Math.floor((high + low + 1) / 2);
+
+        if (mid > high) {
+            this._potentialT.splice(mid, 0, t);
+            this._potentialCols.splice(mid, 0, index);
+        } else {
+            if (index != this._potentialCols[mid]) {
+                if (t <= this._potentialT[mid]) {
+                    this._addPotential(index, t, low, mid - 1);
+                } else {
+                    this._addPotential(index, t, mid + 1, high);
+                }
+            }
+        }
     }
 }

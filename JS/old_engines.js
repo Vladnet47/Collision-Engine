@@ -173,9 +173,9 @@ class NarrowCollisionEngine {
         return false;
     }
 
-    // Returns ChangesPosVel object with all necesary changes to position and velocity
+    // Returns ChangesToMotion object with all necesary changes to position and velocity
     update() {
-        let changes = new ChangesPosVel();
+        let changes = new ChangesToMotion();
         return changes;
     }
 }
@@ -192,7 +192,7 @@ class LowerBound extends NarrowCollisionEngine {
     }
 
     update(gameObject) {
-        let changes = new ChangesPosVel();
+        let changes = new ChangesToMotion();
         changes.addPosIns(vectorToXY(gameObject.pos.y + gameObject.dim.y - this._maxHeight, 90));
         changes.addVelIns(vectorToXY(gameObject.vel.y, 90));
         return changes;
@@ -210,7 +210,7 @@ class TierII extends NarrowCollisionEngine {
     }
 
     update(gameObject, other) {
-        let changes = new ChangesPosVel(),
+        let changes = new ChangesToMotion(),
             type = this.segmentType(gameObject, other);
 
         if (type == "vertical") {
@@ -278,7 +278,7 @@ class TierIII extends NarrowCollisionEngine {
     }
 
     update(gameObject, other) {
-        let changes = new ChangesPosVel(),
+        let changes = new ChangesToMotion(),
             type = this.segmentType();
 
         let offset = 0, curVel = 0, angle = 0, offsetAid = 0;
@@ -395,10 +395,10 @@ class TierIV extends NarrowCollisionEngine {
         let changes = [],
             numOfCols = potentialCols.length;
 
-        changes.push( new ChangesPosVel() );
+        changes.push( new ChangesToMotion() );
 
         for(let col = 1; col < numOfCols; ++col) {
-            changes.push( new ChangesPosVel() );
+            changes.push( new ChangesToMotion() );
             let gameObject = potentialCols[0],
                 other = potentialCols[col];
         

@@ -1,6 +1,6 @@
 'use strict';
 
-class Initialization {
+class Control {
     constructor(canvas) {
         this._buffer = 100;
         this._spawnBuffer = this._buffer - 30;
@@ -82,6 +82,9 @@ class Initialization {
         // set objects based on the test
         let objects;
         switch(name) {
+            case "test0":
+                objects = this._test0();
+                break;
             case "test1": 
                 objects = this._test1();
                 break;
@@ -92,10 +95,10 @@ class Initialization {
                 objects = this._test3();
                 break;
             case "test4":
-                objects = this._test2();
+                objects = this._test4();
                 break;
             case "test5":
-                objects = this._test2();
+                objects = this._test5();
                 break;
             default: console.log("Control: no such test")
         }
@@ -106,6 +109,17 @@ class Initialization {
         
         this._environment.init(objects, engine, gravity, pauseOn);
         this._environment.clearRect = this._clearRect;
+    }
+
+    _test0() {
+        let objects = [];
+        let gam1 = this._createTestObject(new Vector(100, 100), new Vector(0, -25), 50, 1);
+        let gam2 = this._createTestObject(new Vector(100, 300), new Vector(0, -75), 50, 1);
+
+        objects.push(gam1);
+        objects.push(gam2);
+
+        return objects;
     }
 
     _test1() {
@@ -153,6 +167,7 @@ class Initialization {
 
         let player = new Player(new Circle(new Vector(430, 100), 30), 'rgb(0, 153, 255)', new Vector(0, 0), 20);
         player.collidable = true;
+        player.bound = true;
 
         let gam1 = this._createTestObject(new Vector(100, 400), new Vector(50, 0), 30, 10);
         let gam2 = this._createTestObject(new Vector(500, 400), new Vector(-50, 0), 30, 10);
@@ -206,10 +221,10 @@ class Initialization {
         return objects;
     }
 
-    _createTestObject(position, velocity, color, size, mass) {
+    _createTestObject(position, velocity, size, mass, color) {
         let obj = new GameObject(new Circle(position, size), 'rgb(51, 204, 51)', velocity, mass);
         obj.collidable = true;
-        //obj.bound = false;
+        obj.bound = true;
 
         return obj;
     }

@@ -65,14 +65,16 @@ class Timer {
     }
 }
 
+var lastUpdate = Date.now();
+var deltaT;
+
 function updateDeltaT() {
     let currentTime = Date.now();
     deltaT = (currentTime - lastUpdate) / 1000;
     lastUpdate = currentTime;
 }
 
-var lastUpdate = Date.now();
-var deltaT = 0;
+
 
 var pause = false;
 
@@ -84,7 +86,7 @@ $(document).ready(function() {
     let context = canvas.getContext('2d');
     
     // initialize control and environment
-    let control = new Initialization(canvas);
+    let control = new Control(canvas);
     let envir = control.load("test");
 
     // initialize spawn timers
@@ -116,12 +118,8 @@ $(document).ready(function() {
             envir.update();
         }
         envir.render(context);
-
-        if (asteroidTimer.stop()) {
-            control.spawnAsteroids();
-            asteroidTimer.set( Math.random() * (2-1) + 1 );
-        }
-        
+        //spawn(control, asteroidTimer);
+         
         requestAnimationFrame(loop);        
     }
 })
@@ -132,4 +130,11 @@ function initCanvas() {
     canvas.height = window.innerHeight - 20;
 
     return canvas;
+}
+
+function spawn(control, asteroidTimer) {
+    if (asteroidTimer.stop()) {
+        control.spawnAsteroids();
+        asteroidTimer.set( Math.random() * (2-1) + 1 );
+    }
 }
