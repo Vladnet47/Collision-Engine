@@ -89,9 +89,6 @@ $(document).ready(function() {
     let control = new Control(canvas);
     let envir = control.load("test");
 
-    // initialize spawn timers
-    let asteroidTimer = new Timer(1);
-
     events.checkEvents();
 
     // start the game loop
@@ -103,7 +100,8 @@ $(document).ready(function() {
             return;
         }
 
-        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = "black";
+        context.fillRect(0, 0, canvas.width, canvas.height);
 
         // get deltaTime and keyboard events
         updateDeltaT();
@@ -118,6 +116,7 @@ $(document).ready(function() {
             envir.update();
         }
         envir.render(context);
+        control.spawn();
         //spawn(control, asteroidTimer);
          
         requestAnimationFrame(loop);        
@@ -130,11 +129,4 @@ function initCanvas() {
     canvas.height = window.innerHeight - 20;
 
     return canvas;
-}
-
-function spawn(control, asteroidTimer) {
-    if (asteroidTimer.stop()) {
-        control.spawnAsteroids();
-        asteroidTimer.set( Math.random() * (2-1) + 1 );
-    }
 }

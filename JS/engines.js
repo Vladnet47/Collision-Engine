@@ -2,10 +2,11 @@
 
 class NarrowCollisionEngine {
     constructor() {
+        // debug
         this._counter = 0;
         this._size;
         this._colObjects;
-        this._loss = { object: 0.5, bound: 0, tBuffer: 0.01 };
+        this._loss = { object: 0.7, bound: 0, tBuffer: 0.01 };
 
         // bounding rectangle
         this._bound = { top: 0, right: 0, bottom: 0, left: 0, horI: -10, verI: -11 };

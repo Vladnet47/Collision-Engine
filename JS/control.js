@@ -8,6 +8,8 @@ class Control {
         this._spawnRect = new Rectangle( new Vector(-this._spawnBuffer, -this._spawnBuffer), canvas.width + this._spawnBuffer*2, canvas.height + this._spawnBuffer*2 );
         this._clearRect = new Rectangle( new Vector(-this._buffer, -this._buffer), canvas.width + this._buffer*2, canvas.height + this._buffer*2 );
         this._environment = new Environment();
+
+        this._asteroid = {  arr: [], spawning: false, groupFreq: new Timer(5), asterFreq: new Timer(0.4) };
     }
 
     load(name) {
@@ -20,45 +22,159 @@ class Control {
         }
     }
 
-    spawnAsteroids() {
-        let trajectory = this._getStartAndTarget();
-        let start = trajectory.start;
-        let target = trajectory.target;
+    spawn() {
+        if (this._asteroid.groupFreq.stop()) {
+            this._spawnAsteroidGroup();
+        }
+    }
+
+    _spawnAsteroidGroup() {
+        // if not spawning and timer stopped, initialize a new group of asteroids
+        if (!this._asteroid.spawning) {
+            if (this._asteroid.groupFreq.stop()) {
+                this._asteroid.spawning = true;
+                let segments = this._getStartAndTarget2(100, 5);
+                let segS = segments.start;
+                let segT = segments.target;
+                let counter = round(Math.random() * (8 - 5) + 5, 0);
+
+                // initialize asteroid array
+                // horizontal segments
+                if (segS.low.y == segS.high.y) {
+                    this._fillAstArray(counter, "horizontal", segS.low.x, segS.high.x, segT.low.x, segT.high.x, segS.low.y, segT.low.y);
+                } else { // vertical
+                    this._fillAstArray(counter, "vertical", segS.low.y, segS.high.y, segT.low.y, segT.high.y, segS.low.x, segT.low.x);
+                }
+            }
+        } 
+
+        // if asteroid timer ran out, check asteroid array for asteroids. If one exists, spawn and reset timer
+        else if (this._asteroid.asterFreq.stop()) {
+            if (this._asteroid.arr.length == 0) {
+                this._asteroid.spawning = false;
+                this._asteroid.groupFreq.reset();
+            } else {
+                let info = this._asteroid.arr.shift();
+                let asteroid = info.asteroid;
+                this._asteroid.asterFreq.set(info.frequency);
+                this._environment.addObject(asteroid);
+            }
+        }
+    }
+
+    // fills the asteroid array with counter number of asteroids at random freqeuncies
+    _fillAstArray(counter, axis, low1, high1, low2, high2, oth1, oth2) {
+        let frequency;
+
+        for (let i = 0; i < counter; i++) {
+            frequency = round( Math.random() * (0.7-0.4) + 0.4, 1 );
+            // pick random x value on segment
+            let distS = Math.random() * (high1 - low1) + low1;
+            let distT = Math.random() * (high2 - low2) + low2;
+
+            let start;
+            let target;
+
+            // get start and target points
+            if (axis === "horizontal") {
+                start = new Vector(distS, oth1);
+                target = new Vector(distT, oth2);
+            } else {
+                start = new Vector(oth1, distS);
+                target = new Vector(oth2, distT);
+            }
+            
+            let asteroid = this._createAsteroid(start, target);
+            // create asteroid
+            this._asteroid.arr.push( { asteroid: asteroid, frequency: frequency } );
+        }
+    }
+
+    _createAsteroid(start, target) {
         let traits = this._getAsteroidTraits(start, target);
         let velocity = traits.velocity;
         let size = traits.size;
         let mass = traits.mass;
-        let asteroid = new Asteroid( new Circle(start, size), 'rgb(77, 51, 25)', velocity, mass );
+        let asteroid = new Asteroid( new Circle(start, size), '#CEE776', velocity, mass );
         asteroid.collidable = true;
+        asteroid.lifespan.set(Math.random() * 4 + 4);
 
-        this._environment.addObject(asteroid);
+        return asteroid;
     }
 
-    _getStartAndTarget() {
-        let start;
-        let target;
+    // returns start and target segments
+    _getStartAndTarget2(length, spread) {
+        let low1;
+        let low2;
+        let high1;
+        let high2;
+
         let side = Math.floor( Math.random() * 4 );
+        let segment1;
+        let segment2;
 
         switch(side) {
             case 0: //top
-                start = new Vector( Math.random() * this._spawnRect.width + this._spawnRect.x, this._spawnRect.y );
-                target = new Vector( Math.random() * this._spawnRect.width + this._spawnRect.x, this._spawnRect.height + this._spawnRect.y );
+                segment1 = this._getSegment(length, this._spawnRect.x, this._spawnRect.x + this._spawnRect.width);
+                segment2 = this._getSegment(length * spread, this._spawnRect.x, this._spawnRect.x + this._spawnRect.width);
+                low1 = new Vector(segment1.low, this._spawnRect.y);
+                high1 = new Vector(segment1.high, this._spawnRect.y);
+                low2 = new Vector(segment2.low, this._spawnRect.y + this._spawnRect.height);
+                high2 = new Vector(segment2.high, this._spawnRect.y + this._spawnRect.height);
                 break;
             case 1: //right
-                start = new Vector( this._spawnRect.width + this._spawnRect.x, Math.random() * this._spawnRect.height + this._spawnRect.y );
-                target = new Vector( this._spawnRect.x, Math.random() * this._spawnRect.height + this._spawnRect.y );
+                segment1 = this._getSegment(length, this._spawnRect.y, this._spawnRect.y + this._spawnRect.height);
+                segment2 = this._getSegment(length * spread, this._spawnRect.y, this._spawnRect.y + this._spawnRect.height);
+                low1 = new Vector(this._spawnRect.x + this._spawnRect.width, segment1.low);
+                high1 = new Vector(this._spawnRect.x + this._spawnRect.width, segment1.high);
+                low2 = new Vector(this._spawnRect.x, segment2.low);
+                high2 = new Vector(this._spawnRect.x, segment2.high);
                 break;
             case 2: //bottom
-                start = new Vector( Math.random() * this._spawnRect.width + this._spawnRect.x, this._spawnRect.height + this._spawnRect.y );
-                target = new Vector( Math.random() * this._spawnRect.width + this._spawnRect.x, this._spawnRect.y );
+                segment1 = this._getSegment(length, this._spawnRect.x, this._spawnRect.x + this._spawnRect.width);
+                segment2 = this._getSegment(length * spread, this._spawnRect.x, this._spawnRect.x + this._spawnRect.width);
+                low1 = new Vector(segment1.low, this._spawnRect.y + this._spawnRect.height);
+                high1 = new Vector(segment1.high, this._spawnRect.y + this._spawnRect.height);
+                low2 = new Vector(segment2.low, this._spawnRect.y);
+                high2 = new Vector(segment2.high, this._spawnRect.y);
                 break;
             case 3: //left
-                start = new Vector( this._spawnRect.x, Math.random() * this._spawnRect.height + this._spawnRect.y );
-                target = new Vector( this._spawnRect.width + this._spawnRect.x, Math.random() * this._spawnRect.height + this._spawnRect.y );
+                segment1 = this._getSegment(length, this._spawnRect.y, this._spawnRect.y + this._spawnRect.height);
+                segment2 = this._getSegment(length * spread, this._spawnRect.y, this._spawnRect.y + this._spawnRect.height);
+                low1 = new Vector(this._spawnRect.x, segment1.low);
+                high1 = new Vector(this._spawnRect.x, segment1.high);
+                low2 = new Vector(this._spawnRect.x + this._spawnRect.width, segment2.low);
+                high2 = new Vector(this._spawnRect.x + this._spawnRect.width, segment2.high);
                 break;
         }
 
-        return { start: start, target: target };
+        return { start:{low: low1, high: high1}, target:{low: low2, high: high2} };
+    }
+
+    // returns low and high endpoints of segment of length between p1 and p2
+    // p2 > p1
+    _getSegment(length, p1, p2) {
+        let low;
+        let high;
+
+        let center = Math.random() * (p2-p1) + p1;
+        let halfLength = length / 2;
+
+        if (length >= p2 - p1) {
+            low = p1;
+            high = p2;
+        } else if (center - halfLength < p1) {
+            low = p1;
+            high = p1 + length;
+        } else if (center + halfLength > p2) {
+            low = p2 - length;
+            high = p2;
+        } else {
+            low = center - halfLength;
+            high = center + halfLength;
+        }
+
+        return { low: low, high: high };
     }
 
     _getAsteroidTraits(start, target) {
@@ -125,11 +241,11 @@ class Control {
     _test1() {
         let objects = [];
 
-        let player = new Player(new Circle(new Vector(430, 100), 30), 'rgb(0, 153, 255)', new Vector(0, 0), 100);
+        let player = new Player(new Circle(new Vector(430, 100), 30), '#CC1201', new Vector(0, 0), 100);
         player.collidable = true;
         player.bound = true;
 
-        let planet = new Planet(new Circle(new Vector(400, 400), 120), 'rgb(51, 204, 51)', new Vector(0, 0), 1000000);
+        let planet = new Planet(new Circle(new Vector(400, 400), 120), '#8BA821', new Vector(0, 0), 1000000);
         planet.collidable = true;
 
         objects.push(player);

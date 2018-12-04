@@ -10,7 +10,7 @@ class Environment {
         this._narrowColEngine;
         this._clearRect;
         this._globalEffects = {
-            gravity: { on: false, constant: 500, minBuffer: 2 }
+            gravity: { on: false, constant: 1000, minBuffer: 2 }
         };
     }
 
