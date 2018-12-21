@@ -106,7 +106,7 @@ class ChangesToMotion {
         return this._acceleration;
     }
 
-    add(changesOther) { //---------------------------------------------------------------------------TRY TO REMOVE THIS
+    add(changesOther) {
         this.addPos(changesOther.pos);
         this.addVel(changesOther.vel);
         this.addAcc(changesOther.acc);

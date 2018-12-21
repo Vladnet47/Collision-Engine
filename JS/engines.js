@@ -6,7 +6,7 @@ class NarrowCollisionEngine {
         this._counter = 0;
         this._size;
         this._colObjects;
-        this._loss = { object: 0.7, bound: 0, tBuffer: 0.01 };
+        this._loss = { object: 0.7, bound: 0.1, tBuffer: 0.001 };
 
         // bounding rectangle
         this._bound = { top: 0, right: 0, bottom: 0, left: 0, horI: -10, verI: -11 };
@@ -73,43 +73,13 @@ class NarrowCollisionEngine {
             this._updatePosition(i);
         }
 
-        // ----------------------------------------------------------------------------------------------------------------
-        for (let i = 0; i < this._size; i++) {
-            let object = this._colObjects[i];
-            let current = object.object;
-
-            if (current instanceof Player) {
-                let nextPos = current.changes.pos.add(current.pos);
-
-                if (nextPos.y - current.rad <= this._bound.top) {
-                    console.log("overlappingP" + this._counter);
-                }
-            }
-        }
-        // ----------------------------------------------------------------------------------------------------------------
+        
         
 
         // get the velocity changes for each object in collision
         for (let i = 0; i < this._size; i++) {
             this._updateVelocity(i);
         }
-
-        // ----------------------------------------------------------------------------------------------------------------
-        for (let i = 0; i < this._size; i++) {
-            let object = this._colObjects[i];
-            let current = object.object;
-
-            if (current instanceof Player) {
-                let nextPos = multiplyVector( current.changes.vel.add(current.vel), deltaT );
-                nextPos.addTo( current.changes.pos );
-                nextPos.addTo( current.pos );
-
-                if (nextPos.y - current.rad <= this._bound.top) {
-                    console.log("overlappingV" + this._counter);
-                }
-            }
-        }
-        // ----------------------------------------------------------------------------------------------------------------
 
         // call onCollided() for every object
         for (let i = 0; i < this._size; i++) {
@@ -181,8 +151,23 @@ class NarrowCollisionEngine {
             let sqrtDisc = Math.sqrt(discriminant);
             let denom = 2 * a;
 
-            let t1 = round( (sqrtDisc - b) / denom, 4 ) - this._loss.tBuffer;
-            let t2 = round( (-sqrtDisc - b) / denom, 4 ) - this._loss.tBuffer;
+            // find the two values of quadratic equation
+            let t1 = round( (sqrtDisc - b) / denom, 4 );
+            let t2 = round( (-sqrtDisc - b) / denom, 4 );
+
+            // subtract the t buffer from t values
+            // if subtraction makes the t value negative, set the t value to 0 instead
+            if (t1 >= 0 && t1 <= this._loss.tBuffer) {
+                t1 = 0;
+            } else {
+                t1 -= this._loss.tBuffer;
+            }
+
+            if (t2 >= 0 && t2 <= this._loss.tBuffer) {
+                t2 = 0;
+            } else {
+                t2 -= this._loss.tBuffer;
+            }
 
             return (t1 > t2) ? t2 : t1;
         } else {
@@ -430,3 +415,77 @@ class NarrowCollisionEngine {
         return 0.5 * mass * Math.pow(velocity.mag, 2);
     }
 }
+
+
+// POSITION DEBUGGER
+// ----------------------------------------------------------------------------------------------------------------
+        // for (let i = 0; i < this._size; i++) {
+        //     for (let j = i + 1; j < this._size; j++) {
+        //         let current = this._colObjects[i].object;
+        //         let other = this._colObjects[j].object;
+        //         let curPos = round( current.changes.pos.add(current.pos), 1);
+        //         let othPos = round( other.changes.pos.add(other.pos), 1);
+
+        //         if (current instanceof Player) {
+        //             console.log("Player position is: " + curPos + " and Planet position is: " + othPos + " and t = " + this._colObjects[i].shortestT);
+        //         }
+
+        //         let dist = distance(curPos, othPos);
+        //         if (dist < current.rad + other.rad) {
+        //             console.log("POSITION: objects overlapping...");
+        //         }
+        //     }
+        // }
+
+        
+        // for (let i = 0; i < this._size; i++) {
+        //     let object = this._colObjects[i];
+        //     let current = object.object;
+
+        //     if (current instanceof Player) {
+        //         let nextPos = current.changes.pos.add(current.pos);
+
+        //         if (nextPos.y - current.rad <= this._bound.top) {
+        //             console.log("POSITION: bound overlapping..." + this._counter);
+        //         }
+        //     }
+        // }
+        // ----------------------------------------------------------------------------------------------------------------
+
+
+        // VELOCITY DEBUGGER
+        // ----------------------------------------------------------------------------------------------------------------
+        // for (let i = 0; i < this._size; i++) {
+        //     for (let j = i + 1; j < this._size; j++) {
+        //         let current = this._colObjects[i].object;
+        //         let other = this._colObjects[j].object;
+        //         let curPos = multiplyVector( current.changes.vel.add(current.vel), deltaT );
+        //         curPos.addTo( current.changes.pos );
+        //         curPos.addTo( current.pos );
+        //         let othPos = multiplyVector( other.changes.vel.add(other.vel), deltaT );
+        //         othPos.addTo( other.changes.pos );
+        //         othPos.addTo( other.pos );
+
+        //         let dist = distance(curPos, othPos);
+        //         if (dist <= current.rad + other.rad) {
+        //             console.log("VELOCITY: objects overlapping...");
+        //         }
+        //     }
+        // }
+
+        // ----------------------------------------------------------------------------------------------------------------
+        // for (let i = 0; i < this._size; i++) {
+        //     let object = this._colObjects[i];
+        //     let current = object.object;
+
+        //     if (current instanceof Player) {
+        //         let nextPos = multiplyVector( current.changes.vel.add(current.vel), deltaT );
+        //         nextPos.addTo( current.changes.pos );
+        //         nextPos.addTo( current.pos );
+
+        //         if (nextPos.y - current.rad <= this._bound.top) {
+        //             console.log("VELOCITY: bound overlapping..." + this._counter);
+        //         }
+        //     }
+        // }
+        // ----------------------------------------------------------------------------------------------------------------

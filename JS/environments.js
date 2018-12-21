@@ -12,15 +12,18 @@ class Environment {
         this._globalEffects = {
             gravity: { on: false, constant: 1000, minBuffer: 2 }
         };
+
+        this._camera;
     }
 
     set clearRect(rect) {
         this._clearRect = rect;
     }
 
-    init(objects, engine, gravity, pauseOn) {
+    init(objects, engine, camera, gravity, pauseOn) {
         this._gameObjectsNext = objects;
         this._narrowColEngine = engine;
+        this._camera = camera;
         this._globalEffects.gravity.on = gravity;
         this._nObjects = this._gameObjectsNext.length;
         pause = pauseOn;
@@ -40,14 +43,15 @@ class Environment {
         this._behave();
         this._collide();
         this._updateChanges();
+        this._camera.update(this._gameObjectsCurrent);
         this._removeOutOfBounds();
-
+        
         this._updateNext();
     }
 
     // Draws each GameObject in the environment
     render(context) {
-        this._gameObjectsNext.forEach( function (gameObject) { drawCirc(context, gameObject); } );
+        this._gameObjectsNext.forEach( function (gameObject) { strokeCirc(context, gameObject); } );
     }
 
     _updateChanges() {
@@ -94,13 +98,16 @@ class Environment {
             let current = this._gameObjectsCurrent[i];
 
             if (!current.explode) {
-                //let change = changesCurrent[i];
-
                 // global behavior
                 if (this._globalEffects.gravity.on) {
                     this._updateGravity(i, current);
                 }
 
+                // DEBUGGER THAT ADDS VELOCITY TO PLAYER ------------------------------------------------------------------------------
+                if (current instanceof Player) {
+                    //current.changes.addVel(new Vector(0, 20));
+                }
+                
                 // individual behavior
                 current.changes.add( current.behave() );
                 current.updateVelocity();
@@ -161,27 +168,6 @@ class Environment {
             }
         }
     }
-
-    // _updateGravity(i, current) {
-    //     let change = new ChangesToMotion();
-    //     for (let j = 0; j < this._nObjects; j++) {
-    //         if (i != j) {
-    //             let other = this._gameObjectsCurrent[j];
-    //             let dist = other.pos.add( multiplyVector(current.pos, -1) );
-    //             let mag = dist.mag;
-
-    //             if (mag > (current.rad + other.rad + 2)) {
-    //                 let massSum = current.mass + other.mass;
-    //                 let accel = this._globalEffects.gravity.constant * massSum / (current.mass * Math.pow(mag, 2));
-    //                 let vectorResult = vectorToXY(accel, angleDxDy(dist.x, dist.y));
-    //                 change.addAcc(vectorResult);
-    //             }
-    //         }
-    //     }
-    //     return change;
-    // }
-
-    
 
     // DEBUG ---------------------------------------------------------------------------------------------------------
     printYStats(gameObject) {

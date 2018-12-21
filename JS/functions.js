@@ -7,7 +7,14 @@ function defined(value) {
 
 // Returns the value rounded to the nearest decimal
 function round(value, decimal) {
-    return Math.round(value * Math.pow(10, decimal)) / Math.pow(10, decimal);
+    return (value instanceof Vector) ? new Vector(round(value.x, decimal), round(value.y, decimal)) : 
+                                       Math.round(value * Math.pow(10, decimal)) / Math.pow(10, decimal);
+}
+
+// Returns a random int between min and max
+function random(min, max, decimal) {
+    return (defined(decimal)) ? Math.floor((Math.random() * (max - min) + min) * Math.pow(10, decimal)) / Math.pow(10, decimal)
+                            : Math.floor( Math.random() * (max+1 - min) + min );
 }
 
 // Returns the distance between two points, given as vectors
@@ -60,6 +67,14 @@ function drawRect(context, gameObject) {
                      gameObject.pos.y, 
                      gameObject.dim.x, 
                      gameObject.dim.y);
+}
+
+function strokeCirc(context, gameObject) {
+    context.beginPath();
+    context.arc(gameObject.x, gameObject.y, gameObject.rad, 0, 2 * Math.PI, false);
+    context.lineWidth = 2;
+    context.strokeStyle = gameObject.color;
+    context.stroke();
 }
 
 // draws a cicrle if gameObject has bounding circle
