@@ -117,7 +117,6 @@ $(document).ready(function() {
         }
         envir.render(context);
         control.spawn();
-        //spawn(control, asteroidTimer);
          
         requestAnimationFrame(loop);        
     }
