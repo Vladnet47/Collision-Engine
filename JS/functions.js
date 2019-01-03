@@ -60,6 +60,21 @@ function toRadians(degrees) {
     return degrees * (Math.PI / 180);
 }
 
+// returns true if given object is within (edges inclusive) given rectangle
+function objWithinRect(obj, rect) {
+    if (obj.x - obj.rad > rect.x + rect.width || obj.x + obj.rad < rect.x || obj.y - obj.rad > rect.y + rect.height || obj.y + obj.rad < rect.y) {
+        return false;
+    }
+    return true;
+}
+
+function pointWithinRect(point, rect) {
+    if (point.x > rect.x + rect.width || point.x < rect.x || point.y > rect.y + rect.height || point.y < rect.y) {
+        return false;
+    }
+    return true;
+}
+
 // draws a rectangle if gameObject has bounding rectangle
 function drawRect(context, gameObject) {
     context.fillStyle = gameObject.color;
@@ -69,11 +84,16 @@ function drawRect(context, gameObject) {
                      gameObject.dim.y);
 }
 
-function strokeCirc(context, gameObject) {
+function strokeRect(context, position, width, height, color) {
+    context.strokeStyle = 'white';
+    context.strokeRect(position.x, position.y, width, height);
+}
+
+function strokeCirc(context, position, radius, color) {
     context.beginPath();
-    context.arc(gameObject.x, gameObject.y, gameObject.rad, 0, 2 * Math.PI, false);
+    context.arc(position.x, position.y, radius, 0, 2 * Math.PI, false);
     context.lineWidth = 2;
-    context.strokeStyle = gameObject.color;
+    context.strokeStyle = color;
     context.stroke();
 }
 

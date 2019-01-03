@@ -16,6 +16,9 @@ class Vector {
     get mag() {
         return magnitude(this._x, this._y);
     }
+    get angle() {
+        return angleDxDy(this._x, this._y);
+    }
 
     // returns sum of this vector and other
     add(other) {
@@ -35,14 +38,40 @@ class Vector {
     }
 
     clear() {
-        this._x = 0;
-        this._y = 0;
+        if (defined(this._x) && defined(this._y)) {
+            this._x = 0;
+            this._y = 0;
+        }
     }
 
     toString() {
-        return "(" + this._x + ", " + this._y + ")";
+        return "(" + round(this._x, 1) + ", " + round(this._y, 1) + ")";
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 class Rectangle {
     constructor(position, width, height) {
@@ -57,13 +86,46 @@ class Rectangle {
     get y() {
         return this._position.y;
     }
+    get pos() {
+        return this._position;
+    }
     get width() {
         return this._width;
     }
     get height() {
         return this._height;
     }
+    get center() {
+        return new Vector(this._position.x + this._width / 2, this._position.y + this._height / 2);
+    }
+
+    translate(vec) {
+        this._position.addTo(vec);
+    }
+
+    // scales based on the center
+    scale(factor) {
+        let oldWidth = this._width;
+        let oldHeight = this._height;
+
+        this._width *= factor;
+        this._height *= factor;
+
+        this.translate( new Vector( (oldWidth - this._width) / 2, (oldHeight - this._height) / 2) );
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 class Circle {
     constructor(position, radius) {
@@ -78,7 +140,7 @@ class Circle {
         return this._radius;
     }
 
-    resize(factor) {
+    scale(factor) {
         this._radius *= factor;
     }
 
@@ -86,6 +148,15 @@ class Circle {
         return "Circle radius = " + this._radius + " and position = " + this._position.toString();
     }
 }
+
+
+
+
+
+
+
+
+
 
 
 // CHANGESPOSVEL ---------------------------------------------------------------------------------------------
@@ -149,6 +220,32 @@ class ChangesToMotion {
     }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // GAMEOBJECT ---------------------------------------------------------------------------------------------
 class GameObject {
     constructor(circle, color, velocity, mass) {
@@ -162,6 +259,7 @@ class GameObject {
 
         this._properties = {
             collidable: false, // GameObject will be scanned for collisions
+            static: false,
             bound: false,
             lifespan: new Timer("inf"),
             explode: false,
@@ -187,6 +285,9 @@ class GameObject {
     }
     get rad() {
         return this._circle.rad;
+    }
+    get circ() {
+        return this._circle;
     }
     get color() {
         return this._color;
@@ -267,17 +368,45 @@ class GameObject {
         this._explosion.timer.reset();
         this._velocity.addTo( multiplyVector(this._velocity, -1) );
         this._color = this._explosion.color;
-        this._circle.resize( this._explosion.factor );
+        this.scale( this._explosion.factor );
+    }
+
+    scale(factor) {
+        this._circle.scale( factor );
     }
 
     behave() {
         return new ChangesToMotion();
     }
+
     collided() {}
     toString() {
         return this.circle.toString();
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 class CollisionObject {
     constructor(gameObject, envirIndex) {
@@ -313,6 +442,10 @@ class CollisionObject {
     }
     get shortestT() {
         return this._shortestT;
+    }
+
+    updateShortestT(newT) {
+        this._shortestT = newT;
     }
 
     addPotential(index, t) {

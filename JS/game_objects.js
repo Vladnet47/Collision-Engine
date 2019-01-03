@@ -4,12 +4,17 @@
 class Player extends GameObject {
     constructor(circle, color, velocity, mass) {
         super(circle, color, velocity, mass);
-        this.traits = {
+        this._traits = {
             move: { maxSpeed: 400, accel: 400 },
             boost: { speed: 500, delay: 3, letGo: false }
         };
         this.lifespan.set("inf");
     }
+
+    get maxSpeed() {
+        return this._traits.move.maxSpeed;
+    }
+
     // BEHAVIOR ---------------------------------------------------------------------------------------------
     behave() {
         let changes = new ChangesToMotion();
@@ -22,7 +27,7 @@ class Player extends GameObject {
         let angle = -1;
 
         // if velocity is already greater than the max, return changes
-        // if (this.vel.mag >= this.traits.move.accel) {
+        // if (this.vel.mag >= this._traits.move.accel) {
         //     return changes;
         // }
         
@@ -43,7 +48,7 @@ class Player extends GameObject {
 
         // add delta velocity in direction
         if (angle > -1) {
-            changes.addAcc( vectorToXY(this.traits.move.accel, angle) );
+            changes.addAcc( vectorToXY(this._traits.move.accel, angle) );
         }
 
         changes = this.reduce(changes);
@@ -57,11 +62,27 @@ class Player extends GameObject {
 
     // locks speed at maximum
     reduce(changes) {
-        if (this.vel.mag > this.traits.move.maxSpeed) {
-            changes.addVel( vectorToXY(this.vel.mag - this.traits.move.maxSpeed, angleDxDy(this.vel.x, this.vel.y) - 180) );
+        if (this.vel.mag > this._traits.move.maxSpeed) {
+            changes.addVel( vectorToXY(this.vel.mag - this._traits.move.maxSpeed, angleDxDy(this.vel.x, this.vel.y) - 180) );
         }
         return changes;
     }
+
+    collided(other) {
+        if (other instanceof Planet || other instanceof Asteroid) {
+            //this._traits.cameraMarker = true;
+        }
+    }
+
+    // _updateCamera() {
+    //     // update marker for camera that smoothes camera motion, if it is centered on player
+    //     if (this._traits.colliding) {
+    //         this._traits.cameraMarker = true;
+    //         this._traits.colliding = false;
+    //     } else {
+    //         this._traits.colliding = false;
+    //     }
+    // }
 }
 
 class Planet extends GameObject {

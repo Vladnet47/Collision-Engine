@@ -368,38 +368,38 @@ class collisionGroup {
 
         player.physics = true;
 
-        this._gameObjectsNext.push(platform1);
-        this._gameObjectsNext.push(platform2);
-        this._gameObjectsNext.push(platform3);
-        this._gameObjectsNext.push(player);
+        this._nextObjects.push(platform1);
+        this._nextObjects.push(platform2);
+        this._nextObjects.push(platform3);
+        this._nextObjects.push(player);
 
-        this._narrowColEngine = new TierIII();
+        this._colEngine = new TierIII();
     }
 
     init2() {
-        this._gameObjectsNext.push( this.makePlatformTEST( new Vector(50, 50), new Vector(100, 0) ) );
-        this._gameObjectsNext.push( this.makePlatformTEST( new Vector(300, 148), new Vector(-50, 0) ) );
+        this._nextObjects.push( this.makePlatformTEST( new Vector(50, 50), new Vector(100, 0) ) );
+        this._nextObjects.push( this.makePlatformTEST( new Vector(300, 148), new Vector(-50, 0) ) );
 
-        this._gameObjectsNext.push( this.makePlatformTEST( new Vector(50, 300), new Vector(50, 0) ) );
-        this._gameObjectsNext.push( this.makePlatformTEST( new Vector(300, 350), new Vector(-50, 0) ) );
+        this._nextObjects.push( this.makePlatformTEST( new Vector(50, 300), new Vector(50, 0) ) );
+        this._nextObjects.push( this.makePlatformTEST( new Vector(300, 350), new Vector(-50, 0) ) );
         
-        this._gameObjectsNext.push( this.makePlatformTEST( new Vector(50, 550), new Vector(50, 0) ) );
-        this._gameObjectsNext.push( this.makePlatformTEST( new Vector(400, 500), new Vector(-150, 0) ) );
+        this._nextObjects.push( this.makePlatformTEST( new Vector(50, 550), new Vector(50, 0) ) );
+        this._nextObjects.push( this.makePlatformTEST( new Vector(400, 500), new Vector(-150, 0) ) );
 
-        this._narrowColEngine = new TierIV();
+        this._colEngine = new TierIV();
     }
 
     init3() {
-        this._gameObjectsNext.push( this.makePlatformTEST( new Vector(50, 50), new Vector(100, 0) ) );
-        this._gameObjectsNext.push( this.makePlatformTEST( new Vector(300, 148), new Vector(25, 0) ) );
+        this._nextObjects.push( this.makePlatformTEST( new Vector(50, 50), new Vector(100, 0) ) );
+        this._nextObjects.push( this.makePlatformTEST( new Vector(300, 148), new Vector(25, 0) ) );
 
-        this._gameObjectsNext.push( this.makePlatformTEST( new Vector(50, 300), new Vector(50, 0) ) );
-        this._gameObjectsNext.push( this.makePlatformTEST( new Vector(300, 350), new Vector(10, 0) ) );
+        this._nextObjects.push( this.makePlatformTEST( new Vector(50, 300), new Vector(50, 0) ) );
+        this._nextObjects.push( this.makePlatformTEST( new Vector(300, 350), new Vector(10, 0) ) );
         
-        this._gameObjectsNext.push( this.makePlatformTEST( new Vector(50, 550), new Vector(150, 0) ) );
-        this._gameObjectsNext.push( this.makePlatformTEST( new Vector(400, 500), new Vector(0, 0) ) );
+        this._nextObjects.push( this.makePlatformTEST( new Vector(50, 550), new Vector(150, 0) ) );
+        this._nextObjects.push( this.makePlatformTEST( new Vector(400, 500), new Vector(0, 0) ) );
 
-        this._narrowColEngine = new TierIV();
+        this._colEngine = new TierIV();
     }
 
     init4() {
@@ -411,18 +411,18 @@ class collisionGroup {
         player2.collidable = true;
         player2.physics = true;
 
-        this._gameObjectsNext.push(player1);
-        this._gameObjectsNext.push(player2);
-        this._gameObjectsNext.push( this.makePlatformTEST( new Vector(200, 210), new Vector(150, 0) ) );
+        this._nextObjects.push(player1);
+        this._nextObjects.push(player2);
+        this._nextObjects.push( this.makePlatformTEST( new Vector(200, 210), new Vector(150, 0) ) );
 
-        this._narrowColEngine = new TierIV();
+        this._colEngine = new TierIV();
     }
 
     init5() {
-        this._gameObjectsNext.push( this.makePlatformTEST( new Vector(50, 50), new Vector(50, 0) ) );
-        this._gameObjectsNext.push( this.makePlatformTEST( new Vector(300, 100), new Vector(-50, 0) ) );
+        this._nextObjects.push( this.makePlatformTEST( new Vector(50, 50), new Vector(50, 0) ) );
+        this._nextObjects.push( this.makePlatformTEST( new Vector(300, 100), new Vector(-50, 0) ) );
 
-        this._narrowColEngine = new NewModelTest();
+        this._colEngine = new NewModelTest();
     }
 
     makePlatformTEST(pos, vel) {
@@ -511,11 +511,11 @@ class collisionGroup {
 
     // COLLISION METHODS ------------------------------------------------------------------------------------------------------
     collide2(deltaT) {
-        if ( this._narrowColEngine == null ) { throw Error("No narrow collision engine specified"); }
+        if ( this._colEngine == null ) { throw Error("No narrow collision engine specified"); }
 
 
         // Test check potential activeCols
-        let potential = this._narrowColEngine.update(this._gameObjectsCurrent, deltaT);
+        let potential = this._colEngine.update(this._currentObjects, deltaT);
 
         for(let index = 0; index < potential.length; ++index) {
             let record = potential[index];
@@ -523,18 +523,18 @@ class collisionGroup {
         }
         
 
-        this._gameObjectsNext = this._gameObjectsCurrent;
+        this._nextObjects = this._currentObjects;
     }
 
     // Determines which objects collided and handles collisions
     collideTEST(deltaT) {
-        if ( this._narrowColEngine == null ) { throw Error("No narrow collision engine specified"); }
+        if ( this._colEngine == null ) { throw Error("No narrow collision engine specified"); }
 
         let iCurrent = 0;
-        let max = this._gameObjectsCurrent.length;
+        let max = this._currentObjects.length;
 
         while(iCurrent < max) {
-            let gameObject = this._gameObjectsCurrent[iCurrent];
+            let gameObject = this._currentObjects[iCurrent];
             if ( !gameObject.collidable && !gameObject.physics ) { continue; }
 
             // List of objects that are undergoing a potential collision
@@ -543,9 +543,9 @@ class collisionGroup {
 
             // Create potentialCols by checking gameObject with all other objects (after it) in the list
             while(iOther < max) {
-                let other = this._gameObjectsCurrent[iOther];
+                let other = this._currentObjects[iOther];
 
-                if (other.collidable && this._narrowColEngine.potentialCollision(gameObject, other, deltaT)) {
+                if (other.collidable && this._colEngine.potentialCollision(gameObject, other, deltaT)) {
                     potentialCols.push(other);
                 }
                 iOther++;
@@ -554,20 +554,20 @@ class collisionGroup {
             // Update each gameObjects with its respective changes and remove from current gameObjects
             let numOfCols = potentialCols.length; // should be changes
             if(numOfCols < 2) {
-                this._gameObjectsNext.push( this._gameObjectsCurrent.splice(iCurrent, 1)[0] );
+                this._nextObjects.push( this._currentObjects.splice(iCurrent, 1)[0] );
                 max--;
             } else {
-                let changes = this._narrowColEngine.update(potentialCols, deltaT);
+                let changes = this._colEngine.update(potentialCols, deltaT);
 
                 for (let iCol = 0; iCol < numOfCols; ++iCol) {
                     let col = potentialCols[iCol];
                     let changesCol = changes[iCol];
 
-                    let iCurrentCol = this._gameObjectsCurrent.indexOf(col);
-                    let gameObject = this._gameObjectsCurrent.splice(iCurrentCol, 1)[0];
+                    let iCurrentCol = this._currentObjects.indexOf(col);
+                    let gameObject = this._currentObjects.splice(iCurrentCol, 1)[0];
                     this.updateVel(gameObject, changesCol, deltaT);
                     this.updatePos(gameObject, changesCol);
-                    this._gameObjectsNext.push( gameObject );
+                    this._nextObjects.push( gameObject );
                     max--;
                 }
             }
@@ -575,23 +575,23 @@ class collisionGroup {
     }
 
     collide(deltaT) {
-        for ( let index = 0; index < this._gameObjectsCurrent.length; ++index ) {
-            let gameObject = this._gameObjectsCurrent[index];
+        for ( let index = 0; index < this._currentObjects.length; ++index ) {
+            let gameObject = this._currentObjects[index];
 
             // ELIMINATE OBJECTS THAT ARE NOT COLLIDABLE AND DON'T PARTICIPATE IN PHYSICS CALCULATIONS
-            if ( this._narrowColEngine.length == 0) { throw Error("No narrow collision engine in environment"); }
+            if ( this._colEngine.length == 0) { throw Error("No narrow collision engine in environment"); }
             if ( !gameObject.collidable && !gameObject.physics ) { continue; }
 
             let changes = new ChangesToMotion();
 
             // CALCULATE CHANGE IN VELOCITY/POSITION DUE TO NARROW COLLISION
-            for (let indexOth = 0; indexOth < this._gameObjectsCurrent.length; ++indexOth) {
+            for (let indexOth = 0; indexOth < this._currentObjects.length; ++indexOth) {
                 if (indexOth == index) { continue; }
 
-                let other = this._gameObjectsCurrent[indexOth];
+                let other = this._currentObjects[indexOth];
 
-                if (other.collidable && this._narrowColEngine.potentialCollision(gameObject, other, deltaT)) {
-                    changes.add( this._narrowColEngine.update(gameObject, other, deltaT) );
+                if (other.collidable && this._colEngine.potentialCollision(gameObject, other, deltaT)) {
+                    changes.add( this._colEngine.update(gameObject, other, deltaT) );
                 }
             }
 
@@ -599,7 +599,7 @@ class collisionGroup {
             this.updateVel(gameObject, changes, deltaT);
             this.updatePos(gameObject, changes);
 
-            this._gameObjectsNext.push(gameObject);
+            this._nextObjects.push(gameObject);
         }
     }
 

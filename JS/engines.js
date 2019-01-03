@@ -1,22 +1,16 @@
 'use strict';
 
 class NarrowCollisionEngine {
-    constructor() {
-        // debug
-        this._counter = 0;
+    constructor(boundingRect) {
+        this._counter = 0; // debug
         this._size;
         this._colObjects;
-        this._loss = { object: 0.7, bound: 0.1, tBuffer: 0.001 };
+        this._tBuffer = 0.001; // the value subtracted from the calculated t to prevent object overlap
+        this._loss = { object: 0.7, bound: 0.5, tBuffer: 0.001 };
 
         // bounding rectangle
+        this._boundingRect = boundingRect;
         this._bound = { top: 0, right: 0, bottom: 0, left: 0, horI: -10, verI: -11 };
-    }
-
-    setBoundingRect(rect) {
-        this._bound.top = rect.y;
-        this._bound.right = rect.x + rect.width;
-        this._bound.bottom = rect.y + rect.height;
-        this._bound.left = rect.x;
     }
 
     // resets the collision object array
@@ -24,24 +18,48 @@ class NarrowCollisionEngine {
         this._counter++;
         this._size = 0;
         this._colObjects = [];
+        this._updateSides();
+    }
+
+    // checks intersection of given object with bounding rectangle
+    checkBound(i, current) {
+        // get the current velocity with respect to deltaT
+        let curVel = multiplyVector(current.vel, deltaT);
+
+        // if given object does not react to bounding rectangle or if it is not moving,
+        if (!current.bound) {return}
+
+        let finalPos = current.pos.add( curVel );
+        let curI, horT, verT;
+
+        // check if colliding with horizontal (top or bottom side of bounding rectangle)
+        if (finalPos.y - current.rad <= this._bound.top || finalPos.y + current.rad >= this._bound.bottom) {
+            curI = this._record(i, current);
+            horT = this._calculateBoundT(current, curVel, this._bound.horI);
+            this._colObjects[curI].addPotential(this._bound.horI, horT);
+        }
+
+        // check if colliding with vertical (right or left side of bounding rectangle)
+        if (finalPos.x - current.rad <= this._bound.left || finalPos.x + current.rad >= this._bound.right) {
+            curI = this._record(i, current);
+            verT = this._calculateBoundT(current, curVel, this._bound.verI);
+            this._colObjects[curI].addPotential(this._bound.verI, verT);
+        }
+
+        //console.log(current.pos + " vertical = (" + verT + ") and horizontal = (" + horT + ")");
     }
 
     // records collision if it occurs
     // returns true if collision occurs, false if it doesn't
     check(i, current, j, other) {
-        // find change in position for current frame (velocity * delta time)
-        let curVel = multiplyVector(current.vel, deltaT);
-        let othVel = multiplyVector(other.vel, deltaT);
-
-        // check intersection with bounding rectangle
-        this._checkBound(i, current, curVel);
-        this._checkBound(j, other, othVel);
-
         // stop calculating if one of the objects is non-collidable
         if (!current.collidable || !other.collidable) {
             return;
         }
-        
+
+        // find change in position for current frame (velocity * delta time)
+        let curVel = multiplyVector(current.vel, deltaT);
+        let othVel = multiplyVector(other.vel, deltaT);
         let dist = distance(other.pos, current.pos);
         let radSum = current.rad + other.rad;
 
@@ -51,15 +69,15 @@ class NarrowCollisionEngine {
             let t = this._calculateT(current.pos, other.pos, curVel, othVel, radSum);
 
             // if intersection occurs within the current velocities, record both objects
-            if (t >= 0 && t <= 1) {
+            if (t <= 1) {
                 let curI = this._record(i, current);
                 let othI = this._record(j, other);
                 this._colObjects[curI].addPotential(othI, t);
                 this._colObjects[othI].addPotential(curI, t);
-                return true;
+
+                //console.log("collided!");
             }
         }
-        return false;
     }
 
     // returns a list of changes for all objects that underwent collisions
@@ -73,9 +91,6 @@ class NarrowCollisionEngine {
             this._updatePosition(i);
         }
 
-        
-        
-
         // get the velocity changes for each object in collision
         for (let i = 0; i < this._size; i++) {
             this._updateVelocity(i);
@@ -87,6 +102,15 @@ class NarrowCollisionEngine {
         }
     }
 
+    _updateSides() {
+        this._bound.top = this._boundingRect.y;
+        this._bound.right = this._boundingRect.x + this._boundingRect.width;
+        this._bound.bottom = this._boundingRect.y + this._boundingRect.height;
+        this._bound.left = this._boundingRect.x;
+    }
+
+    // calculates game-effect response for each object that experiecned a collision
+    // for instance, player takes damage from hitting an asteroid
     _callCollided(curI) {
         let currentObj = this._colObjects[curI];
         let activeCols = currentObj.activeCols;
@@ -99,44 +123,33 @@ class NarrowCollisionEngine {
         }
     }
 
-    _checkBound(i, current, curVel) {
-        if (!current.bound || curVel.mag == 0) {return}
-
-        let finalPos = current.pos.add( curVel );
-
-        // check if colliding with horizontal
-        if (finalPos.y - current.rad <= this._bound.top || finalPos.y + current.rad >= this._bound.bottom) {
-            let boundT = this._calculateBoundT(current, curVel, this._bound.horI);
-            let curI = this._record(i, current);
-            this._colObjects[curI].addPotential(this._bound.horI, boundT);
-        }
-
-        // check if colliding with vertical
-        if (finalPos.x - current.rad <= this._bound.left || finalPos.x + current.rad >= this._bound.right) {
-            let boundT = this._calculateBoundT(current, curVel, this._bound.verI);
-            let curI = this._record(i, current);
-            this._colObjects[curI].addPotential(this._bound.verI, boundT);
-        }
-    }
-
     _calculateBoundT(current, curVel, side) {
         let posX = current.pos.x;
         let posY = current.pos.y;
         let rad = current.rad;
 
+        // initialize both t values (either top and bottom, or right and left collision with bounding rect)
+        let t1, t2, vel;
+
         if (side == this._bound.verI) {
-            let tLeft = (posX - rad - this._bound.left) / curVel.x;
-            let tRight = (this._bound.right - rad - posX) / curVel.x;
-            return round( Math.min( Math.abs(tLeft), Math.abs(tRight) ) - this._loss.tBuffer, 4);
+            vel = Math.abs(curVel.x);
+            t1 = (posX - rad - this._bound.left) / vel;
+            t2 = (this._bound.right - rad - posX) / vel;
         } else {
-            let tTop = (this._bound.top - posY + rad) / curVel.y;
-            let tBottom = (this._bound.bottom - posY - rad) / curVel.y;
-            return round( Math.min( Math.abs(tTop), Math.abs(tBottom) ) - this._loss.tBuffer, 4);
+            vel = Math.abs(curVel.y);
+            t1 = (posY - rad - this._bound.top) / vel;
+            t2 = (this._bound.bottom - rad - posY) / vel;
         }
+
+        t1 = this._isLegalT(t1);
+        t2 = this._isLegalT(t2);
+
+        return (t1 > t2) ? t2 : t1;
     }
 
-    // if collision occurs, returns the time of collision, relative to the starting position (t is between 0 and 1)
-    // otherwise, return -1;
+    // if collision occurs, returns the time of collision (t) from starting position
+    // if collition occurs in current frame, returns t value between 0 and 1 (proportion of current velocity)
+    // if collision does not occur in current frame, returns 10
     _calculateT(curPos, othPos, curVel, othVel, radSum) {
         let velDiff = new Vector(curVel.x - othVel.x, curVel.y - othVel.y);
         let posDiff = new Vector(othPos.x - curPos.x, othPos.y - curPos.y);
@@ -147,32 +160,33 @@ class NarrowCollisionEngine {
         let c = Math.pow(posDiff.x, 2) + Math.pow(posDiff.y, 2) - Math.pow(radSum, 2);
         let discriminant = Math.pow(b, 2) - 4 * a * c;
 
+        // initialize both t values to be illegal by default
+        let t1, t2;
+
+        // if discriminant is positive, then there must be a collision at one or two points
         if (discriminant >= 0) {
             let sqrtDisc = Math.sqrt(discriminant);
             let denom = 2 * a;
 
-            // find the two values of quadratic equation
-            let t1 = round( (sqrtDisc - b) / denom, 4 );
-            let t2 = round( (-sqrtDisc - b) / denom, 4 );
+            // find the two t values based on the quadratic equation, and check if they are legal
+            t1 = (sqrtDisc - b) / denom;
+            t2 = (-sqrtDisc - b) / denom; 
+        } 
 
-            // subtract the t buffer from t values
-            // if subtraction makes the t value negative, set the t value to 0 instead
-            if (t1 >= 0 && t1 <= this._loss.tBuffer) {
-                t1 = 0;
-            } else {
-                t1 -= this._loss.tBuffer;
-            }
+        t1 = this._isLegalT(t1);
+        t2 = this._isLegalT(t2);
 
-            if (t2 >= 0 && t2 <= this._loss.tBuffer) {
-                t2 = 0;
-            } else {
-                t2 -= this._loss.tBuffer;
-            }
+        return (t1 > t2) ? t2 : t1;
+    }
 
-            return (t1 > t2) ? t2 : t1;
-        } else {
-            return -10;
+    // returns the given t - tBuffer if given t is allowed, -1 otherwise
+    // t is allowed if: t >= 0 and t <= 1
+    _isLegalT(t) {
+        if (t >= 0 && t <= 1) {
+            t -= this._tBuffer;
+            return (t > 0) ? round(t, 4) : 0;
         }
+        return 10;
     }
 
     // takes environment index and gameObject
@@ -206,38 +220,135 @@ class NarrowCollisionEngine {
     _markActive(curI) {
         let currentObj = this._colObjects[curI];
 
-        while (currentObj.hasPotential) {
+        if (currentObj.hasPotential) {
             let shortestCol = currentObj.popPotential();
             let curT = shortestCol.t;
             let othI = shortestCol.i;
 
-            // if bound
+            if (curT > currentObj.shortestT) {
+                // if current object already has active collision and it happens sooner, do not continue calculating
+                if (currentObj.hasActive) {
+                    return;
+                } else {
+                    currentObj.updateShortestT(curT);
+                }
+            }
+
+            // if other is bounding rectangle, mark active and check the next potential collision
             if (othI == this._bound.horI || othI == this._bound.verI) {
                 currentObj.addActive(othI);
-                continue;
+                this._markActive(curI);
+                return;
             }
 
-            // if t of current collision is not the shortest, break,
-            // since all of the subsequent ones will be greater
-            if (curT != currentObj.shortestT) {
-                break;
+            // since other is not a wall, get the object
+            let otherObj = this._colObjects[curI];
+
+            // if current collided with other sooner than other with current, something went wrong
+            if (curT < otherObj.shortesT) {
+                console.log("MarkActive: ERROR current t was not recorded in other");
+                return;
             }
 
-            // if object
-            let otherObj = this._colObjects[othI];
+            // if current is also other's shortest collision, mark other as active, then check next potential collision
             if (curT == otherObj.shortestT) {
                 currentObj.addActive(othI);
-            } 
-            
-            // if other object has shorter collision
-            else if (curT > otherObj.shortestT) {
-                console.log("shit");
-                // recalculate T with the same other
-                // if new t is less than current shortest
+                this._markActive(curI);
+                return;
+            }
 
-                // if new t is greater than current shortest
+            // if other object has a collision that occurs sooner
+            if (curT > otherObj.shortestT) {
+                let current = currentObj.object;
+                let other = otherObj.object;
+
+                // update other
+                this._markActive(othI);
+
+                // calculate other object's next position
+                let othNewPos = other.pos.add( multiplyVector(other.vel, deltaT * otherObj.shortestT) );
+
+                // re-calculate current t based on other object's next position
+                let newCurT = this._calculateT(current.pos, othNewPos, current.vel, new Vector(0,0), current.rad + other.rad);
+
+                // if current and other still collide
+                if (newCurT <= 1) {
+                    // if the new t is shorter than the current t, or if current doesn't have any more potential collisions
+                    // mark other as active and update current's shortestT
+                    if (newCurT <= curT || !currentObj.hasPotential) {
+                        currentObj.addActive(othI);
+                        currentObj.updateShortestT(newCurT);
+                        this._markActive(curI);
+                    } else { // if new collision happens later, 
+                        console.log("shit");
+
+                        // let nextCurCol = currentObj.popPotential();
+                        // let nextCurT = nextCurCol.t;
+
+                        // if (newCurT < nextCurT) {
+                        //     currentObj.addActive(othI);
+                        //     return;
+                        // } else if (newCurT == nextCurT) {
+                        //     currentObj.addActive(othI);
+
+                        // }
+                    }
+                } else { // if they don't
+                    this._markActive(curI);
+                }
+
+
+
+
+                
+                
+                // compare new t with current.popPotential()
+                    // if new t is smaller, mark each other active
+                    // if new t is the same 
+
+
+                    // what does popPotential return if no potential cols left?
+                    // what happens when shortestT is no longer the shortestT?
             }
         }
+
+
+
+
+        // while (currentObj.hasPotential) {
+        //     let shortestCol = currentObj.popPotential();
+        //     let curT = shortestCol.t;
+        //     let othI = shortestCol.i;
+
+           
+
+        //     // if t of current collision is not the shortest, break,
+        //     // since all of the subsequent ones will be greater
+        //     if (curT != currentObj.shortestT) {
+        //         break;
+        //     }
+
+        //     // if bound
+        //     if (othI == this._bound.horI || othI == this._bound.verI) {
+        //         currentObj.addActive(othI);
+        //         continue;
+        //     }
+
+        //     // if object
+        //     let otherObj = this._colObjects[othI];
+        //     if (curT == otherObj.shortestT) {
+        //         currentObj.addActive(othI);
+        //     } 
+            
+        //     // if other object has shorter collision
+        //     else if (curT > otherObj.shortestT) {
+        //         console.log("shit");
+        //         // recalculate T with the same other
+        //         // if new t is less than current shortest
+
+        //         // if new t is greater than current shortest
+        //     }
+        // }
     }
 
     _updatePosition(curI) {
